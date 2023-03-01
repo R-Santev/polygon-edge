@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"reflect"
 
@@ -130,6 +131,14 @@ func (v *ValidatorMetadata) UnmarshalRLPWith(val *fastrlp.Value) error {
 func (v *ValidatorMetadata) String() string {
 	return fmt.Sprintf("Address=%v; Is Active=%v; Voting Power=%d; BLS Key=%v;",
 		v.Address.String(), v.IsActive, v.VotingPower, hex.EncodeToString(v.BlsKey.Marshal()))
+}
+
+func CalculateVPower(stakedBalance *big.Int, expNominator *big.Int, expDenominator *big.Int) *big.Int {
+	stakedH := big.NewInt(0).Div(stakedBalance, big.NewInt(1e18))
+	vpower := math.Pow(float64(stakedH.Uint64()), float64(expNominator.Uint64())/float64(expDenominator.Uint64()))
+	res := big.NewInt(int64(vpower))
+
+	return res
 }
 
 // AccountSet is a type alias for slice of ValidatorMetadata instances

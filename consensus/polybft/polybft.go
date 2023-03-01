@@ -391,11 +391,13 @@ func (p *Polybft) startRuntime() error {
 func (p *Polybft) startConsensusProtocol() {
 	// wait to have at least n peers connected. The 2 is just an initial heuristic value
 	// Most likely we will parametrize this in the future.
-	if !p.waitForNPeers() {
-		return
-	}
-
-	p.logger.Debug("peers connected")
+	// H_MODIFY: TODO: the method was always returning 0 peers, so we commented it out
+	// for now. Fix it later.
+	// if !p.waitForNPeers() {
+	// 	return
+	// }
+	//
+	// p.logger.Debug("peers connected")
 
 	newBlockSub := p.blockchain.SubscribeEvents()
 	defer newBlockSub.Close()

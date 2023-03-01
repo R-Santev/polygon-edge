@@ -174,16 +174,19 @@ func (v *Validator) UnmarshalBLSPublicKey() (*bls.PublicKey, error) {
 }
 
 // ToValidatorMetadata creates ValidatorMetadata instance
-func (v *Validator) ToValidatorMetadata() (*ValidatorMetadata, error) {
+func (v *Validator) ToValidatorMetadata(expNum *big.Int, expDen *big.Int) (*ValidatorMetadata, error) {
 	blsKey, err := v.UnmarshalBLSPublicKey()
 	if err != nil {
 		return nil, err
 	}
 
+	vpower := CalculateVPower(v.Balance, expNum, expDen)
+	fmt.Println("Validator metadata set", "address", v.Address, "balance is", v.Balance, "voting power is", vpower)
+
 	metadata := &ValidatorMetadata{
 		Address:     v.Address,
 		BlsKey:      blsKey,
-		VotingPower: new(big.Int).Set(v.Stake),
+		VotingPower: vpower,
 		IsActive:    true,
 	}
 

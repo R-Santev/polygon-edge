@@ -4,4 +4,6 @@
 	shallow = true
 [submodule "core-contracts"]
 	path = core-contracts
-	url = https://github.com/0xPolygon/core-contracts
+	url = https://github.com/R-Santev/core-contracts.git
+	shallow = true
+	branch = h-main

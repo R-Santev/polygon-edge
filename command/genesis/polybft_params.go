@@ -220,8 +220,13 @@ func (p *genesisParams) generatePolyBftChainConfig(o command.OutputFormatter) er
 	validatorMetadata := make([]*polybft.ValidatorMetadata, len(initialValidators))
 
 	for i, validator := range initialValidators {
+		// Hardcode the same values as the default values in the contract
+		// TODO: It may be beneficial to have these values configurable in the future
+		expNum := big.NewInt(8500)
+		expDen := big.NewInt(10000)
+
 		// create validator metadata instance
-		metadata, err := validator.ToValidatorMetadata()
+		metadata, err := validator.ToValidatorMetadata(expNum, expDen)
 		if err != nil {
 			return err
 		}

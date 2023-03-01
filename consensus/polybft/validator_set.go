@@ -3,7 +3,6 @@ package polybft
 import (
 	"math/big"
 
-	"github.com/0xPolygon/polygon-edge/helper/common"
 	"github.com/0xPolygon/polygon-edge/types"
 	"github.com/hashicorp/go-hclog"
 )
@@ -63,18 +62,28 @@ func NewValidatorSet(valz AccountSet, logger hclog.Logger) *validatorSet {
 // based on its voting power and quorum size
 func (vs validatorSet) HasQuorum(signers map[types.Address]struct{}) bool {
 	aggregateVotingPower := big.NewInt(0)
+	valsCount := 0
 
 	for address := range signers {
 		if votingPower := vs.votingPowerMap[address]; votingPower != nil {
 			_ = aggregateVotingPower.Add(aggregateVotingPower, votingPower)
+
+			valsCount++
 		}
 	}
 
-	hasQuorum := aggregateVotingPower.Cmp(vs.quorumSize) >= 0
+	hasQuorum := false
+	quorumSize := vs.quorumSize
+	if valsCount < 4 {
+		quorumSize = vs.totalVotingPower
+	}
+
+	hasQuorum = aggregateVotingPower.Cmp(quorumSize) >= 0
 
 	vs.logger.Debug("HasQuorum",
 		"signers", len(signers),
 		"signers voting power", aggregateVotingPower,
+		"quorum size", quorumSize,
 		"hasQuorum", hasQuorum)
 
 	return hasQuorum
@@ -93,9 +102,15 @@ func (vs validatorSet) Len() int {
 }
 
 // getQuorumSize calculates quorum size as 2/3 super-majority of provided total voting power
+// H_MODIFY: Qourum size is 614/1000 = 61.4% of total voting power
 func getQuorumSize(totalVotingPower *big.Int) *big.Int {
 	quorum := new(big.Int)
-	quorum.Mul(totalVotingPower, big.NewInt(2))
+	// In case for some reason voting power goes below too small value, we set quorum to total voting power
+	if totalVotingPower.Cmp(big.NewInt(10)) == -1 {
+		quorum = quorum.Add(quorum, totalVotingPower)
+	} else {
+		quorum = quorum.Mul(totalVotingPower, big.NewInt(614)).Div(quorum, big.NewInt(1000)).Add(quorum, big.NewInt(1))
+	}
 
-	return common.BigIntDivCeil(quorum, big.NewInt(3))
+	return quorum
 }

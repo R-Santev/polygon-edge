@@ -68,6 +68,80 @@ func (s *SystemStateImpl) GetStakeOnValidatorSet(validatorAddr types.Address) (*
 	}
 
 	return balance, nil
+	// outputsExponent, err := s.validatorContract.Call("getExponent", ethgo.Latest)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// expNumerator, ok := outputsExponent["numerator"].(*big.Int)
+	// if !ok {
+	// 	return nil, fmt.Errorf("failed to decode voting power exponent numerator")
+	// }
+
+	// fmt.Println("Voting Power Exponent Numerator is: ", expNumerator)
+
+	// expDenominator, ok := outputsExponent["denominator"].(*big.Int)
+	// if !ok {
+	// 	return nil, fmt.Errorf("failed to decode voting power exponent denominator")
+	// }
+
+	// fmt.Println("Voting Power Exponent Denominator is: ", expDenominator)
+
+	// queryValidator := func(addr ethgo.Address) (*ValidatorMetadata, error) {
+	// 	output, err := s.validatorContract.Call("getValidator", ethgo.Latest, addr)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("failed to call getValidator function: %w", err)
+	// 	}
+
+	// 	blsKey, ok := output["blsKey"].([4]*big.Int)
+	// 	if !ok {
+	// 		return nil, fmt.Errorf("failed to decode blskey")
+	// 	}
+
+	// 	pubKey, err := bls.UnmarshalPublicKeyFromBigInt(blsKey)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("failed to unmarshal BLS public key: %w", err)
+	// 	}
+
+	// 	totalStake, ok := output["totalStake"].(*big.Int)
+	// 	if !ok {
+	// 		return nil, fmt.Errorf("failed to decode total stake")
+	// 	}
+
+	// 	isActive, ok := output["active"].(bool)
+	// 	if !ok {
+	// 		return nil, fmt.Errorf("failed to decode active field")
+	// 	}
+
+	// 	vpower := CalculateVPower(totalStake, expNumerator, expDenominator)
+
+	// 	val := &ValidatorMetadata{
+	// 		Address:     types.Address(addr),
+	// 		BlsKey:      pubKey,
+	// 		VotingPower: vpower,
+	// 		IsActive:    isActive,
+	// 	}
+
+	// 	fmt.Println("Validator fetched", "address", addr, "voting power is", vpower)
+
+	// 	return val, nil
+	// }
+
+	// for _, addr := range addresses {
+	// 	val, err := queryValidator(addr)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+
+	// 	// filter out non active validators
+	// 	if !val.IsActive {
+	// 		continue
+	// 	}
+
+	// 	res = append(res, val)
+	// }
+
+	// return res, nil
 }
 
 // GetEpoch retrieves current epoch number from the smart contract
