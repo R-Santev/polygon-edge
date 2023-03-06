@@ -11,3 +11,12 @@ git submodule set-url core-contracts https://github.com/R-Santev/core-contracts.
 ```
 git submodule update --init  --remote ./core-contracts
 ```
+
+## How to generate core-contracts binaries:
+
+After successful init and update of the core-contracts submodule run the following:
+
+```
+go run ./consensus/polybft/contractsapi/artifacts-gen/main.go
+go run ./consensus/polybft/contractsapi/bindings-gen/main.go
+```

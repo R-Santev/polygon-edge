@@ -19,30 +19,13 @@ polygon-edge polybft-secrets output --data-dir test-chain-2
 polygon-edge manifest --validators-prefix test-chain-
 ```
 
-3. Compile contracts
-   When cloning polygon-edge the core contracts are added as a submodule. Initialize and update submodules:
-
-```
-git submodule init
-git submodule update
-```
-
-Copy the core-contracts folder and paste it in your setup directory (on the level of test-chain-1 and test-chain-2)
-
-Then install the packages and compile the contracts
-
-```
-npm i
-npx hardhat compile
-```
-
-4. Generate genesis file
+3. Generate genesis file
 
 ```
 polygon-edge genesis --consensus polybft --ibft-validators-prefix-path test-chain-
 ```
 
-5. Run the chain
+4. Run the chain
 
 ```
 polygon-edge server --data-dir ./test-chain-1 --chain genesis.json --grpc-address :10000 --libp2p :10001 --jsonrpc :10002 --seal --log-level=DEBUG
