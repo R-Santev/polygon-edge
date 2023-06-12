@@ -251,6 +251,14 @@ func (m *systemStateMock) GetEpoch() (uint64, error) {
 	return 0, nil
 }
 
+func (s *systemStateMock) GetValidatorBlsKey(addr types.Address) (*bls.PublicKey, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (s *systemStateMock) GetVotingPowerExponent() (exponent *VotingPowerExponent, err error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 var _ contract.Provider = (*stateProviderMock)(nil)
 
 type stateProviderMock struct {

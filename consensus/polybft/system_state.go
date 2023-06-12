@@ -6,10 +6,17 @@ import (
 	"math/big"
 
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/contractsapi"
+	bls "github.com/0xPolygon/polygon-edge/consensus/polybft/signer"
 	"github.com/0xPolygon/polygon-edge/types"
 	"github.com/umbracle/ethgo"
 	"github.com/umbracle/ethgo/contract"
 )
+
+// VotingPowerExponent is a data transfer object which holds voting power exponent used to balance the voting power
+type VotingPowerExponent struct {
+	Numerator   *big.Int
+	Denominator *big.Int
+}
 
 // ValidatorInfo is data transfer object which holds validator information,
 // provided by smart contract
@@ -29,6 +36,10 @@ type SystemState interface {
 	GetNextCommittedIndex() (uint64, error)
 	// GetStakeOnValidatorSet retrieves stake of given validator on ValidatorSet contract
 	GetStakeOnValidatorSet(validatorAddr types.Address) (*big.Int, error)
+	// GetVotingPowerExponent retrieves voting power exponent from the ChildValidatorSet smart contract
+	GetVotingPowerExponent() (exponent *VotingPowerExponent, err error)
+	// GetValidatorBlsKey retrieves validator BLS public key from the ChildValidatorSet smart contract
+	GetValidatorBlsKey(addr types.Address) (*bls.PublicKey, error)
 }
 
 var _ SystemState = &SystemStateImpl{}
@@ -41,11 +52,13 @@ type SystemStateImpl struct {
 
 // NewSystemState initializes new instance of systemState which abstracts smart contracts functions
 func NewSystemState(valSetAddr types.Address, stateRcvAddr types.Address, provider contract.Provider) *SystemStateImpl {
+	// H_MODIFY: Use ChildValidatorSet abi
 	s := &SystemStateImpl{}
 	s.validatorContract = contract.NewContract(
 		ethgo.Address(valSetAddr),
-		contractsapi.ValidatorSet.Abi, contract.WithProvider(provider),
+		contractsapi.ChildValidatorSet.Abi, contract.WithProvider(provider),
 	)
+
 	s.sidechainBridgeContract = contract.NewContract(
 		ethgo.Address(stateRcvAddr),
 		contractsapi.StateReceiver.Abi,
@@ -55,97 +68,37 @@ func NewSystemState(valSetAddr types.Address, stateRcvAddr types.Address, provid
 	return s
 }
 
+// H_MODIFY: Get validator stake from childValidatorSet contract using the getValidatorTotalStake function
+// TODO: getValidatorTotalStake is a temporary solution and must be removed
+// (check the func in the contract for more info)
 // GetStakeOnValidatorSet retrieves stake of given validator on ValidatorSet contract
 func (s *SystemStateImpl) GetStakeOnValidatorSet(validatorAddr types.Address) (*big.Int, error) {
-	rawResult, err := s.validatorContract.Call("balanceOf", ethgo.Latest, validatorAddr)
+	rawResult, err := s.validatorContract.Call("getValidatorTotalStake", ethgo.Latest, validatorAddr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to call getValidator function: %w", err)
 	}
 
-	balance, isOk := rawResult["0"].(*big.Int)
+	stake, isOk := rawResult["stake"].(*big.Int)
 	if !isOk {
-		return nil, fmt.Errorf("failed to decode balance")
+		return nil, fmt.Errorf("failed to decode stake")
 	}
 
-	return balance, nil
-	// outputsExponent, err := s.validatorContract.Call("getExponent", ethgo.Latest)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	// in case stake is 0 validator is not active no mather is there a delegated balance
+	if stake.Cmp(big.NewInt(0)) == 0 {
+		return bigZero, nil
+	}
 
-	// expNumerator, ok := outputsExponent["numerator"].(*big.Int)
-	// if !ok {
-	// 	return nil, fmt.Errorf("failed to decode voting power exponent numerator")
-	// }
+	totalStake, isOk := rawResult["totalStake"].(*big.Int)
+	if !isOk {
+		return nil, fmt.Errorf("failed to decode totalStake")
+	}
 
-	// fmt.Println("Voting Power Exponent Numerator is: ", expNumerator)
-
-	// expDenominator, ok := outputsExponent["denominator"].(*big.Int)
-	// if !ok {
-	// 	return nil, fmt.Errorf("failed to decode voting power exponent denominator")
-	// }
-
-	// fmt.Println("Voting Power Exponent Denominator is: ", expDenominator)
-
-	// queryValidator := func(addr ethgo.Address) (*ValidatorMetadata, error) {
-	// 	output, err := s.validatorContract.Call("getValidator", ethgo.Latest, addr)
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("failed to call getValidator function: %w", err)
-	// 	}
-
-	// 	blsKey, ok := output["blsKey"].([4]*big.Int)
-	// 	if !ok {
-	// 		return nil, fmt.Errorf("failed to decode blskey")
-	// 	}
-
-	// 	pubKey, err := bls.UnmarshalPublicKeyFromBigInt(blsKey)
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("failed to unmarshal BLS public key: %w", err)
-	// 	}
-
-	// 	totalStake, ok := output["totalStake"].(*big.Int)
-	// 	if !ok {
-	// 		return nil, fmt.Errorf("failed to decode total stake")
-	// 	}
-
-	// 	isActive, ok := output["active"].(bool)
-	// 	if !ok {
-	// 		return nil, fmt.Errorf("failed to decode active field")
-	// 	}
-
-	// 	vpower := CalculateVPower(totalStake, expNumerator, expDenominator)
-
-	// 	val := &ValidatorMetadata{
-	// 		Address:     types.Address(addr),
-	// 		BlsKey:      pubKey,
-	// 		VotingPower: vpower,
-	// 		IsActive:    isActive,
-	// 	}
-
-	// 	fmt.Println("Validator fetched", "address", addr, "voting power is", vpower)
-
-	// 	return val, nil
-	// }
-
-	// for _, addr := range addresses {
-	// 	val, err := queryValidator(addr)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-
-	// 	// filter out non active validators
-	// 	if !val.IsActive {
-	// 		continue
-	// 	}
-
-	// 	res = append(res, val)
-	// }
-
-	// return res, nil
+	return totalStake, nil
 }
 
 // GetEpoch retrieves current epoch number from the smart contract
 func (s *SystemStateImpl) GetEpoch() (uint64, error) {
+	// check how system tx is executed and why epoch data is not changed
 	rawResult, err := s.validatorContract.Call("currentEpochId", ethgo.Latest)
 	if err != nil {
 		return 0, err
@@ -158,6 +111,46 @@ func (s *SystemStateImpl) GetEpoch() (uint64, error) {
 	}
 
 	return epochNumber.Uint64(), nil
+}
+
+// H: add a function to fetch the voting power exponent
+func (s *SystemStateImpl) GetVotingPowerExponent() (exponent *VotingPowerExponent, err error) {
+	rawOutput, err := s.validatorContract.Call("getExponent", ethgo.Latest)
+	if err != nil {
+		return nil, err
+	}
+
+	expNumerator, ok := rawOutput["numerator"].(*big.Int)
+	if !ok {
+		return nil, fmt.Errorf("failed to decode voting power exponent numerator")
+	}
+
+	expDenominator, ok := rawOutput["denominator"].(*big.Int)
+	if !ok {
+		return nil, fmt.Errorf("failed to decode voting power exponent denominator")
+	}
+
+	return &VotingPowerExponent{Numerator: expNumerator, Denominator: expDenominator}, nil
+}
+
+// H: add a function to fetch the validator bls key
+func (s *SystemStateImpl) GetValidatorBlsKey(addr types.Address) (*bls.PublicKey, error) {
+	rawOutput, err := s.validatorContract.Call("getValidator", ethgo.Latest, addr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call getValidator function: %w", err)
+	}
+
+	rawKey, ok := rawOutput["blsKey"].([4]*big.Int)
+	if !ok {
+		return nil, fmt.Errorf("failed to decode blskey")
+	}
+
+	blsKey, err := bls.UnmarshalPublicKeyFromBigInt(rawKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal BLS public key: %w", err)
+	}
+
+	return blsKey, nil
 }
 
 // GetNextCommittedIndex retrieves next committed bridge state sync index

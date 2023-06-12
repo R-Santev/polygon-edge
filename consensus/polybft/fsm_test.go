@@ -16,6 +16,7 @@ import (
 	bls "github.com/0xPolygon/polygon-edge/consensus/polybft/signer"
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/wallet"
 	"github.com/0xPolygon/polygon-edge/contracts"
+	"github.com/0xPolygon/polygon-edge/state"
 	"github.com/0xPolygon/polygon-edge/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
@@ -309,7 +310,7 @@ func TestFSM_BuildProposal_EpochEndingBlock_ValidatorsDeltaExists(t *testing.T) 
 		backend:                blockChainMock,
 		isEndOfEpoch:           true,
 		validators:             validatorSet,
-		commitEpochInput:       createTestCommitEpochInput(t, 0, 10),
+		commitEpochInput:       createTestCommitEpochInputWithVals(t, 0, validatorSet.validators, 10),
 		distributeRewardsInput: createTestDistributeRewardsInput(t, 0, validators, 10),
 		exitEventRootHash:      types.ZeroHash,
 		logger:                 hclog.NewNullLogger(),
@@ -457,6 +458,56 @@ func TestFSM_VerifyStateTransactions_EndOfEpochWrongCommitEpochTx(t *testing.T) 
 
 	commitEpochTx := createStateTransactionWithData(contracts.ValidatorSetContract, commitEpochInput)
 	assert.ErrorContains(t, fsm.VerifyStateTransactions([]*types.Transaction{commitEpochTx}), "invalid commit epoch transaction")
+}
+
+func TestFSM_BuildProposal_EpochEndingBlock_FailToCreateValidatorsDelta(t *testing.T) {
+	t.Parallel()
+
+	const (
+		accountCount      = 6
+		signaturesCount   = 4
+		parentBlockNumber = 49
+	)
+
+	testValidators := newTestValidators(t, accountCount)
+	allAccounts := testValidators.getPublicIdentities()
+	extra := createTestExtra(allAccounts, AccountSet{}, accountCount-1, signaturesCount, signaturesCount)
+
+	parent := &types.Header{Number: parentBlockNumber, ExtraData: extra}
+
+	transition := &state.Transition{}
+	blockBuilderMock := new(blockBuilderMock)
+	blockBuilderMock.On("WriteTx", mock.Anything).Return(error(nil)).Once()
+	blockBuilderMock.On("GetState").Return(transition).Once()
+	blockBuilderMock.On("Reset").Return(error(nil)).Once()
+	blockBuilderMock.On("Fill").Once()
+
+	systemStateMock := new(systemStateMock)
+	systemStateMock.On("GetValidatorSet").Return(nil, errors.New("failed to get validators set")).Once()
+
+	blockChainMock := new(blockchainMock)
+	blockChainMock.On("GetStateProvider", mock.Anything).
+		Return(NewStateProvider(transition)).Once()
+	blockChainMock.On("GetSystemState", mock.Anything, mock.Anything).Return(systemStateMock).Once()
+
+	fsm := &fsm{parent: parent,
+		blockBuilder:      blockBuilderMock,
+		config:            &PolyBFTConfig{},
+		backend:           blockChainMock,
+		isEndOfEpoch:      true,
+		validators:        testValidators.toValidatorSet(),
+		commitEpochInput:  createTestCommitEpochInputWithVals(t, 0, allAccounts, 10),
+		exitEventRootHash: types.ZeroHash,
+	}
+
+	proposal, err := fsm.BuildProposal(0)
+	assert.ErrorContains(t, err, "failed to retrieve validator set for current block: failed to get validators set")
+	assert.Nil(t, proposal)
+
+	blockBuilderMock.AssertNotCalled(t, "Build")
+	blockBuilderMock.AssertExpectations(t)
+	systemStateMock.AssertExpectations(t)
+	blockChainMock.AssertExpectations(t)
 }
 
 func TestFSM_VerifyStateTransactions_CommitmentTransactionAndSprintIsFalse(t *testing.T) {
@@ -724,16 +775,16 @@ func TestFSM_Validate_EpochEndingBlock_MismatchInDeltas(t *testing.T) {
 	commitEpochTxInput, err := commitEpoch.EncodeAbi()
 	require.NoError(t, err)
 
-	distributeRewards := createTestDistributeRewardsInput(t, 1, validators.getPublicIdentities(), 10)
-	distributeRewardsTxInput, err := distributeRewards.EncodeAbi()
-	require.NoError(t, err)
+	// distributeRewards := createTestDistributeRewardsInput(t, 1, validators.getPublicIdentities(), 10)
+	// distributeRewardsTxInput, err := distributeRewards.EncodeAbi()
+	// require.NoError(t, err)
 
 	stateBlock.Block.Header.Hash = proposalHash
 	stateBlock.Block.Header.ParentHash = parent.Hash
 	stateBlock.Block.Header.Timestamp = uint64(time.Now().UTC().Unix())
 	stateBlock.Block.Transactions = []*types.Transaction{
 		createStateTransactionWithData(contracts.ValidatorSetContract, commitEpochTxInput),
-		createStateTransactionWithData(contracts.RewardPoolContract, distributeRewardsTxInput),
+		// createStateTransactionWithData(contracts.RewardPoolContract, distributeRewardsTxInput),
 	}
 
 	proposal := stateBlock.Block.MarshalRLP()
@@ -763,7 +814,7 @@ func TestFSM_Validate_EpochEndingBlock_MismatchInDeltas(t *testing.T) {
 		logger:                 hclog.NewNullLogger(),
 		isEndOfEpoch:           true,
 		commitEpochInput:       commitEpoch,
-		distributeRewardsInput: distributeRewards,
+		distributeRewardsInput: nil,
 		polybftBackend:         polybftBackendMock,
 		newValidatorsDelta:     newValidatorDelta,
 	}

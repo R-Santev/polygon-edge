@@ -92,20 +92,21 @@ func init() {
 		log.Fatal(err)
 	}
 
-	RootERC20Predicate, err = artifact.DecodeArtifact([]byte(RootERC20PredicateArtifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// H_MODIFY: unused contracts
+	// RootERC20Predicate, err = artifact.DecodeArtifact([]byte(RootERC20PredicateArtifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	RootERC721Predicate, err = artifact.DecodeArtifact([]byte(RootERC721PredicateArtifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// RootERC721Predicate, err = artifact.DecodeArtifact([]byte(RootERC721PredicateArtifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	RootERC1155Predicate, err = artifact.DecodeArtifact([]byte(RootERC1155PredicateArtifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// RootERC1155Predicate, err = artifact.DecodeArtifact([]byte(RootERC1155PredicateArtifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	StateReceiver, err = artifact.DecodeArtifact([]byte(StateReceiverArtifact))
 	if err != nil {
@@ -117,75 +118,76 @@ func init() {
 		log.Fatal(err)
 	}
 
-	ChildERC20, err = artifact.DecodeArtifact([]byte(ChildERC20Artifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// H_MODIFY: unused contracts
+	// ChildERC20, err = artifact.DecodeArtifact([]byte(ChildERC20Artifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	ChildERC20Predicate, err = artifact.DecodeArtifact([]byte(ChildERC20PredicateArtifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// ChildERC20Predicate, err = artifact.DecodeArtifact([]byte(ChildERC20PredicateArtifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	ChildERC20PredicateAccessList, err = artifact.DecodeArtifact([]byte(ChildERC20PredicateAccessListArtifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// ChildERC20PredicateAccessList, err = artifact.DecodeArtifact([]byte(ChildERC20PredicateAccessListArtifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	ChildERC721, err = artifact.DecodeArtifact([]byte(ChildERC721Artifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// ChildERC721, err = artifact.DecodeArtifact([]byte(ChildERC721Artifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	ChildERC721Predicate, err = artifact.DecodeArtifact([]byte(ChildERC721PredicateArtifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// ChildERC721Predicate, err = artifact.DecodeArtifact([]byte(ChildERC721PredicateArtifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	ChildERC721PredicateAccessList, err = artifact.DecodeArtifact([]byte(ChildERC721PredicateAccessListArtifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// ChildERC721PredicateAccessList, err = artifact.DecodeArtifact([]byte(ChildERC721PredicateAccessListArtifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	ChildERC1155, err = artifact.DecodeArtifact([]byte(ChildERC1155Artifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// ChildERC1155, err = artifact.DecodeArtifact([]byte(ChildERC1155Artifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	ChildERC1155Predicate, err = artifact.DecodeArtifact([]byte(ChildERC1155PredicateArtifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// ChildERC1155Predicate, err = artifact.DecodeArtifact([]byte(ChildERC1155PredicateArtifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	ChildERC1155PredicateAccessList, err = artifact.DecodeArtifact([]byte(ChildERC1155PredicateAccessListArtifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// ChildERC1155PredicateAccessList, err = artifact.DecodeArtifact([]byte(ChildERC1155PredicateAccessListArtifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	NativeERC20, err = artifact.DecodeArtifact([]byte(NativeERC20Artifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// NativeERC20, err = artifact.DecodeArtifact([]byte(NativeERC20Artifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	NativeERC20Mintable, err = artifact.DecodeArtifact([]byte(NativeERC20MintableArtifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// NativeERC20Mintable, err = artifact.DecodeArtifact([]byte(NativeERC20MintableArtifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	RootERC20, err = artifact.DecodeArtifact([]byte(MockERC20Artifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// RootERC20, err = artifact.DecodeArtifact([]byte(MockERC20Artifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	RootERC721, err = artifact.DecodeArtifact([]byte(MockERC721Artifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// RootERC721, err = artifact.DecodeArtifact([]byte(MockERC721Artifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	RootERC1155, err = artifact.DecodeArtifact([]byte(MockERC1155Artifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// RootERC1155, err = artifact.DecodeArtifact([]byte(MockERC1155Artifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	TestWriteBlockMetadata, err = artifact.DecodeArtifact(readTestContractContent("TestWriteBlockMetadata.json"))
 	if err != nil {
@@ -202,25 +204,30 @@ func init() {
 		log.Fatal(err)
 	}
 
-	CustomSupernetManager, err = artifact.DecodeArtifact([]byte(CustomSupernetManagerArtifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// H_MODIFY: unused contracts
+	// CustomSupernetManager, err = artifact.DecodeArtifact([]byte(CustomSupernetManagerArtifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	StakeManager, err = artifact.DecodeArtifact([]byte(StakeManagerArtifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// StakeManager, err = artifact.DecodeArtifact([]byte(StakeManagerArtifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	RewardPool, err = artifact.DecodeArtifact([]byte(RewardPoolArtifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// RewardPool, err = artifact.DecodeArtifact([]byte(RewardPoolArtifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	ValidatorSet, err = artifact.DecodeArtifact([]byte(ValidatorSetArtifact))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// ValidatorSet, err = artifact.DecodeArtifact([]byte(ValidatorSetArtifact))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// H_MODIFY: initialize ChildValidatorSet artifacts
+	ValidatorSet, err = artifact.DecodeArtifact([]byte(ChildValidatorSetArtifact))
+	ChildValidatorSet, err = artifact.DecodeArtifact([]byte(ChildValidatorSetArtifact))
 }
 
 func readTestContractContent(contractFileName string) []byte {

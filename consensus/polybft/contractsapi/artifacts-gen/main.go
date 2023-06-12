@@ -31,50 +31,52 @@ func main() {
 			"child/StateReceiver.sol",
 			"StateReceiver",
 		},
-		{
-			"child/NativeERC20.sol",
-			"NativeERC20",
-		},
-		{
-			"child/NativeERC20Mintable.sol",
-			"NativeERC20Mintable",
-		},
-		{
-			"child/ChildERC20.sol",
-			"ChildERC20",
-		},
-		{
-			"child/ChildERC20Predicate.sol",
-			"ChildERC20Predicate",
-		},
-		{
-			"child/ChildERC20PredicateAccessList.sol",
-			"ChildERC20PredicateAccessList",
-		},
-		{
-			"child/ChildERC721.sol",
-			"ChildERC721",
-		},
-		{
-			"child/ChildERC721Predicate.sol",
-			"ChildERC721Predicate",
-		},
-		{
-			"child/ChildERC721PredicateAccessList.sol",
-			"ChildERC721PredicateAccessList",
-		},
-		{
-			"child/ChildERC1155.sol",
-			"ChildERC1155",
-		},
-		{
-			"child/ChildERC1155Predicate.sol",
-			"ChildERC1155Predicate",
-		},
-		{
-			"child/ChildERC1155PredicateAccessList.sol",
-			"ChildERC1155PredicateAccessList",
-		},
+		// H_MODIFY: unused contracts
+		//
+		// {
+		// 	"child/NativeERC20.sol",
+		// 	"NativeERC20",
+		// },
+		// {
+		// 	"child/NativeERC20Mintable.sol",
+		// 	"NativeERC20Mintable",
+		// },
+		// {
+		// 	"child/ChildERC20.sol",
+		// 	"ChildERC20",
+		// },
+		// {
+		// 	"child/ChildERC20Predicate.sol",
+		// 	"ChildERC20Predicate",
+		// },
+		// {
+		// 	"child/ChildERC20PredicateAccessList.sol",
+		// 	"ChildERC20PredicateAccessList",
+		// },
+		// {
+		// 	"child/ChildERC721.sol",
+		// 	"ChildERC721",
+		// },
+		// {
+		// 	"child/ChildERC721Predicate.sol",
+		// 	"ChildERC721Predicate",
+		// },
+		// {
+		// 	"child/ChildERC721PredicateAccessList.sol",
+		// 	"ChildERC721PredicateAccessList",
+		// },
+		// {
+		// 	"child/ChildERC1155.sol",
+		// 	"ChildERC1155",
+		// },
+		// {
+		// 	"child/ChildERC1155Predicate.sol",
+		// 	"ChildERC1155Predicate",
+		// },
+		// {
+		// 	"child/ChildERC1155PredicateAccessList.sol",
+		// 	"ChildERC1155PredicateAccessList",
+		// },
 		{
 			"child/System.sol",
 			"System",
@@ -103,45 +105,46 @@ func main() {
 			"root/StateSender.sol",
 			"StateSender",
 		},
+		// H_MODIFY: unused contracts
+		// {
+		// 	"mocks/MockERC20.sol",
+		// 	"MockERC20",
+		// },
+		// {
+		// 	"root/RootERC20Predicate.sol",
+		// 	"RootERC20Predicate",
+		// },
+		// {
+		// 	"mocks/MockERC721.sol",
+		// 	"MockERC721",
+		// },
+		// {
+		// 	"root/RootERC721Predicate.sol",
+		// 	"RootERC721Predicate",
+		// },
+		// {
+		// 	"mocks/MockERC1155.sol",
+		// 	"MockERC1155",
+		// },
+		// {
+		// 	"root/RootERC1155Predicate.sol",
+		// 	"RootERC1155Predicate",
+		// },
+		// {
+		// 	"root/staking/CustomSupernetManager.sol",
+		// 	"CustomSupernetManager",
+		// },
+		// {
+		// 	"root/staking/StakeManager.sol",
+		// 	"StakeManager",
+		// },
+		// {
+		// 	"child/validator/RewardPool.sol",
+		// 	"RewardPool",
+		// },
 		{
-			"mocks/MockERC20.sol",
-			"MockERC20",
-		},
-		{
-			"root/RootERC20Predicate.sol",
-			"RootERC20Predicate",
-		},
-		{
-			"mocks/MockERC721.sol",
-			"MockERC721",
-		},
-		{
-			"root/RootERC721Predicate.sol",
-			"RootERC721Predicate",
-		},
-		{
-			"mocks/MockERC1155.sol",
-			"MockERC1155",
-		},
-		{
-			"root/RootERC1155Predicate.sol",
-			"RootERC1155Predicate",
-		},
-		{
-			"root/staking/CustomSupernetManager.sol",
-			"CustomSupernetManager",
-		},
-		{
-			"root/staking/StakeManager.sol",
-			"StakeManager",
-		},
-		{
-			"child/validator/RewardPool.sol",
-			"RewardPool",
-		},
-		{
-			"child/validator/ValidatorSet.sol",
-			"ValidatorSet",
+			"child/ChildValidatorSet.sol",
+			"ChildValidatorSet",
 		},
 	}
 

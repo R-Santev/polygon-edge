@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/umbracle/ethgo/abi"
 
 	"github.com/0xPolygon/polygon-edge/chain"
 	"github.com/0xPolygon/polygon-edge/contracts"
@@ -347,6 +348,11 @@ func (t *Transition) Write(txn *types.Transaction) error {
 	msg := txn.Copy()
 
 	result, e := t.Apply(msg)
+	if result.Reverted() {
+		unpackedRevert, _ := abi.UnpackRevertError(result.ReturnValue)
+		t.logger.Debug("the call has reverted. Revert msg:", unpackedRevert, "Error: ", e)
+	}
+
 	if e != nil {
 		t.logger.Error("failed to apply tx", "err", e)
 

@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	"github.com/0xPolygon/polygon-edge/chain"
+	"github.com/0xPolygon/polygon-edge/consensus/polybft/contractsapi"
 	bls "github.com/0xPolygon/polygon-edge/consensus/polybft/signer"
 	"github.com/0xPolygon/polygon-edge/helper/common"
 	"github.com/0xPolygon/polygon-edge/types"
@@ -115,21 +116,23 @@ type Validator struct {
 	Address       types.Address
 	BlsPrivateKey *bls.PrivateKey
 	BlsKey        string
+	BlsSignature  string
 	Balance       *big.Int
 	Stake         *big.Int
 	MultiAddr     string
 }
 
 type validatorRaw struct {
-	Address   types.Address `json:"address"`
-	BlsKey    string        `json:"blsKey"`
-	Balance   *string       `json:"balance"`
-	Stake     *string       `json:"stake"`
-	MultiAddr string        `json:"multiAddr"`
+	Address      types.Address `json:"address"`
+	BlsKey       string        `json:"blsKey"`
+	BlsSignature string        `json:"blsSignature"`
+	Balance      *string       `json:"balance"`
+	Stake        *string       `json:"stake"`
+	MultiAddr    string        `json:"multiAddr"`
 }
 
 func (v *Validator) MarshalJSON() ([]byte, error) {
-	raw := &validatorRaw{Address: v.Address, BlsKey: v.BlsKey, MultiAddr: v.MultiAddr}
+	raw := &validatorRaw{Address: v.Address, BlsKey: v.BlsKey, MultiAddr: v.MultiAddr, BlsSignature: v.BlsSignature}
 	raw.Balance = types.EncodeBigInt(v.Balance)
 	raw.Stake = types.EncodeBigInt(v.Stake)
 
@@ -148,6 +151,7 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 
 	v.Address = raw.Address
 	v.BlsKey = raw.BlsKey
+	v.BlsSignature = raw.BlsSignature
 	v.MultiAddr = raw.MultiAddr
 
 	v.Balance, err = types.ParseUint256orHex(raw.Balance)
@@ -171,6 +175,41 @@ func (v *Validator) UnmarshalBLSPublicKey() (*bls.PublicKey, error) {
 	}
 
 	return bls.UnmarshalPublicKey(decoded)
+}
+
+// UnmarshalBLSSignature unmarshals the hex encoded BLS signature
+func (v *Validator) UnmarshalBLSSignature() (*bls.Signature, error) {
+	decoded, err := hex.DecodeString(v.BlsSignature)
+	if err != nil {
+		return nil, err
+	}
+
+	return bls.UnmarshalSignature(decoded)
+}
+
+// ToValidatorInitAPIBinding converts Validator to instance of contractsapi.ValidatorInit
+func (v Validator) ToValidatorInitAPIBinding() (*contractsapi.ValidatorInit, error) {
+	blsSignature, err := v.UnmarshalBLSSignature()
+	if err != nil {
+		return nil, err
+	}
+
+	signBigInts, err := blsSignature.ToBigInt()
+	if err != nil {
+		return nil, err
+	}
+
+	pubKey, err := v.UnmarshalBLSPublicKey()
+	if err != nil {
+		return nil, err
+	}
+
+	return &contractsapi.ValidatorInit{
+		Addr:      v.Address,
+		Pubkey:    pubKey.ToBigInt(),
+		Signature: signBigInts,
+		Stake:     new(big.Int).Set(v.Balance),
+	}, nil
 }
 
 // ToValidatorMetadata creates ValidatorMetadata instance

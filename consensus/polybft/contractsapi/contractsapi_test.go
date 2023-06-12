@@ -38,6 +38,17 @@ func TestEncoding_Method(t *testing.T) {
 			Epoch: &Epoch{
 				StartBlock: big.NewInt(1),
 				EndBlock:   big.NewInt(1),
+				EpochRoot:  types.EmptyRootHash,
+			},
+			Uptime: &Uptime{
+				EpochID: new(big.Int).SetUint64(1),
+				UptimeData: []*UptimeData{
+					{
+						Validator:    types.Address{0x1},
+						SignedBlocks: big.NewInt(1),
+					},
+				},
+				TotalBlocks: big.NewInt(1),
 			},
 		},
 	}

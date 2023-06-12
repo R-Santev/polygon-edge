@@ -10,7 +10,7 @@ import (
 const (
 	DefaultGenesisFileName  = "genesis.json"
 	DefaultChainName        = "polygon-edge"
-	DefaultChainID          = 100
+	DefaultChainID          = 187
 	DefaultConsensus        = server.PolyBFTConsensus
 	DefaultGenesisGasUsed   = 458752  // 0x70000
 	DefaultGenesisGasLimit  = 5242880 // 0x500000

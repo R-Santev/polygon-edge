@@ -59,6 +59,7 @@ const (
 
 	ecdsaAddressLength = 40
 	blsKeyLength       = 256
+	blsSignatureLength = 128
 )
 
 var (
@@ -164,7 +165,8 @@ func (p *genesisParams) generatePolyBftChainConfig(o command.OutputFormatter) er
 	chainConfig := &chain.Chain{
 		Name: p.name,
 		Params: &chain.Params{
-			Forks: enabledForks,
+			ChainID: int64(p.chainID),
+			Forks:   enabledForks,
 			Engine: map[string]interface{}{
 				string(server.PolyBFTConsensus): polyBftConfig,
 			},
@@ -332,21 +334,22 @@ func (p *genesisParams) deployContracts(totalStake *big.Int,
 			artifact: contractsapi.StateReceiver,
 			address:  contracts.StateReceiverContract,
 		},
-		{
-			// ChildERC20 token contract
-			artifact: contractsapi.ChildERC20,
-			address:  contracts.ChildERC20Contract,
-		},
-		{
-			// ChildERC721 token contract
-			artifact: contractsapi.ChildERC721,
-			address:  contracts.ChildERC721Contract,
-		},
-		{
-			// ChildERC1155 contract
-			artifact: contractsapi.ChildERC1155,
-			address:  contracts.ChildERC1155Contract,
-		},
+		// H_MODIFY: Unused contracts
+		// {
+		// 	// ChildERC20 token contract
+		// 	artifact: contractsapi.ChildERC20,
+		// 	address:  contracts.ChildERC20Contract,
+		// },
+		// {
+		// 	// ChildERC721 token contract
+		// 	artifact: contractsapi.ChildERC721,
+		// 	address:  contracts.ChildERC721Contract,
+		// },
+		// {
+		// 	// ChildERC1155 contract
+		// 	artifact: contractsapi.ChildERC1155,
+		// 	address:  contracts.ChildERC1155Contract,
+		// },
 		{
 			// BLS contract
 			artifact: contractsapi.BLS,
@@ -366,57 +369,59 @@ func (p *genesisParams) deployContracts(totalStake *big.Int,
 			artifact: contractsapi.ValidatorSet,
 			address:  contracts.ValidatorSetContract,
 		},
-		{
-			artifact: contractsapi.RewardPool,
-			address:  contracts.RewardPoolContract,
-		},
+		// H_MODIFY: Unused contracts
+		// {
+		// 	artifact: contractsapi.RewardPool,
+		// 	address:  contracts.RewardPoolContract,
+		// },
 	}
 
-	if !params.mintableNativeToken {
-		genesisContracts = append(genesisContracts,
-			&contractInfo{artifact: contractsapi.NativeERC20, address: contracts.NativeERC20TokenContract})
-	} else {
-		genesisContracts = append(genesisContracts,
-			&contractInfo{artifact: contractsapi.NativeERC20Mintable, address: contracts.NativeERC20TokenContract})
-	}
+	// H_MODIFY: Unused contracts
+	// if !params.mintableNativeToken {
+	// 	genesisContracts = append(genesisContracts,
+	// 		&contractInfo{artifact: contractsapi.NativeERC20, address: contracts.NativeERC20TokenContract})
+	// } else {
+	// 	genesisContracts = append(genesisContracts,
+	// 		&contractInfo{artifact: contractsapi.NativeERC20Mintable, address: contracts.NativeERC20TokenContract})
+	// }
 
-	if len(params.bridgeAllowListAdmin) != 0 || len(params.bridgeBlockListAdmin) != 0 {
-		genesisContracts = append(genesisContracts,
-			&contractInfo{
-				artifact: contractsapi.ChildERC20PredicateAccessList,
-				address:  contracts.ChildERC20PredicateContract,
-			})
+	// if len(params.bridgeAllowListAdmin) != 0 || len(params.bridgeBlockListAdmin) != 0 {
+	// genesisContracts = append(genesisContracts,
+	// 	&contractInfo{
+	// 		artifact: contractsapi.ChildERC20PredicateAccessList,
+	// 		address:  contracts.ChildERC20PredicateContract,
+	// 	})
 
-		genesisContracts = append(genesisContracts,
-			&contractInfo{
-				artifact: contractsapi.ChildERC721PredicateAccessList,
-				address:  contracts.ChildERC721PredicateContract,
-			})
+	// genesisContracts = append(genesisContracts,
+	// 	&contractInfo{
+	// 		artifact: contractsapi.ChildERC721PredicateAccessList,
+	// 		address:  contracts.ChildERC721PredicateContract,
+	// 	})
 
-		genesisContracts = append(genesisContracts,
-			&contractInfo{
-				artifact: contractsapi.ChildERC1155PredicateAccessList,
-				address:  contracts.ChildERC1155PredicateContract,
-			})
-	} else {
-		genesisContracts = append(genesisContracts,
-			&contractInfo{
-				artifact: contractsapi.ChildERC20Predicate,
-				address:  contracts.ChildERC20PredicateContract,
-			})
+	// genesisContracts = append(genesisContracts,
+	// 	&contractInfo{
+	// 		artifact: contractsapi.ChildERC1155PredicateAccessList,
+	// 		address:  contracts.ChildERC1155PredicateContract,
+	// 	})
+	// } else {
+	// genesisContracts = append(genesisContracts,
+	// 	&contractInfo{
+	// 		artifact: contractsapi.ChildERC20Predicate,
+	// 		address:  contracts.ChildERC20PredicateContract,
+	// 	})
 
-		genesisContracts = append(genesisContracts,
-			&contractInfo{
-				artifact: contractsapi.ChildERC721Predicate,
-				address:  contracts.ChildERC721PredicateContract,
-			})
+	// genesisContracts = append(genesisContracts,
+	// 	&contractInfo{
+	// 		artifact: contractsapi.ChildERC721Predicate,
+	// 		address:  contracts.ChildERC721PredicateContract,
+	// 	})
 
-		genesisContracts = append(genesisContracts,
-			&contractInfo{
-				artifact: contractsapi.ChildERC1155Predicate,
-				address:  contracts.ChildERC1155PredicateContract,
-			})
-	}
+	// genesisContracts = append(genesisContracts,
+	// 	&contractInfo{
+	// 		artifact: contractsapi.ChildERC1155Predicate,
+	// 		address:  contracts.ChildERC1155PredicateContract,
+	// 	})
+	// }
 
 	allocations := make(map[types.Address]*chain.GenesisAccount, len(genesisContracts)+1)
 
@@ -426,6 +431,9 @@ func (p *genesisParams) deployContracts(totalStake *big.Int,
 			Code:    contract.artifact.DeployedBytecode,
 		}
 	}
+
+	// ChildValidatorSet must have funds pre-allocated, because of withdrawal workflow
+	allocations[contracts.ValidatorSetContract].Balance = totalStake
 
 	if rewardTokenByteCode != nil {
 		// if reward token is provided in genesis then, add it to allocations
@@ -472,7 +480,7 @@ func (p *genesisParams) getValidatorAccounts(
 			parts := strings.Split(validator, ":")
 			if len(parts) != 3 {
 				return nil, fmt.Errorf("expected 4 parts provided in the following format "+
-					"<P2P multi address:ECDSA address:public BLS key>, but got %d part(s)",
+					"<P2P multi address:ECDSA address:public BLS key:BLS signature>, but got %d part(s)",
 					len(parts))
 			}
 
@@ -490,13 +498,18 @@ func (p *genesisParams) getValidatorAccounts(
 				return nil, fmt.Errorf("invalid BLS key: %s", parts[2])
 			}
 
+			if len(parts[3]) != blsSignatureLength {
+				return nil, fmt.Errorf("invalid BLS signature: %s", parts[3])
+			}
+
 			addr := types.StringToAddress(trimmedAddress)
 			validators[i] = &polybft.Validator{
-				MultiAddr: parts[0],
-				Address:   addr,
-				BlsKey:    trimmedBLSKey,
-				Balance:   getPremineAmount(addr, premineBalances, command.DefaultPremineBalance),
-				Stake:     getPremineAmount(addr, stakeMap, command.DefaultStake),
+				MultiAddr:    parts[0],
+				Address:      addr,
+				BlsKey:       trimmedBLSKey,
+				BlsSignature: parts[3],
+				Balance:      getPremineAmount(addr, premineBalances, command.DefaultPremineBalance),
+				Stake:        getPremineAmount(addr, stakeMap, command.DefaultStake),
 			}
 		}
 

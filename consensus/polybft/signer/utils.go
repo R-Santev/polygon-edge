@@ -1,7 +1,6 @@
 package bls
 
 import (
-	"bytes"
 	"crypto/rand"
 	"math/big"
 
@@ -56,27 +55,17 @@ func MarshalMessageToBigInt(message, domain []byte) ([2]*big.Int, error) {
 	}, nil
 }
 
+// H_MODIFY: Generate KOSK signature without SupernetManager parameter (not L2 chain)
 // MakeKOSKSignature creates KOSK signature which prevents rogue attack
-func MakeKOSKSignature(privateKey *PrivateKey, address types.Address,
-	chainID int64, domain []byte, supernetManagerAddr types.Address) (*Signature, error) {
-	spenderABI, err := addressABIType.Encode(address)
+func MakeKOSKSignature(
+	privateKey *PrivateKey, address types.Address, chainID int64, domain []byte) (*Signature, error) {
+	message, err := abi.Encode(
+		[]interface{}{address, big.NewInt(chainID)},
+		abi.MustNewType("tuple(address, uint256)"))
 	if err != nil {
 		return nil, err
 	}
 
-	supernetManagerABI, err := addressABIType.Encode(supernetManagerAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	chainIDABI, err := uint256ABIType.Encode(big.NewInt(chainID))
-	if err != nil {
-		return nil, err
-	}
-
-	// ethgo pads address to 32 bytes, but solidity doesn't (keeps it 20 bytes)
-	// that's why we are skipping first 12 bytes
-	message := bytes.Join([][]byte{spenderABI[12:], supernetManagerABI[12:], chainIDABI}, nil)
-
-	return privateKey.Sign(message, domain)
+	// abi.Encode adds 12 zero bytes before actual address bytes
+	return privateKey.Sign(message[12:], domain)
 }

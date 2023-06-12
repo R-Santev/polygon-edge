@@ -129,14 +129,15 @@ func (f *fsm) BuildProposal(currentRound uint64) ([]byte, error) {
 			return nil, fmt.Errorf("failed to apply commit epoch transaction: %w", err)
 		}
 
-		tx, err = f.createDistributeRewardsTx()
-		if err != nil {
-			return nil, err
-		}
+		// H_MoDIFY: There is no separate distribute rewards tx
+		// tx, err = f.createDistributeRewardsTx()
+		// if err != nil {
+		// 	return nil, err
+		// }
 
-		if err := f.blockBuilder.WriteTx(tx); err != nil {
-			return nil, fmt.Errorf("failed to apply distribute rewards transaction: %w", err)
-		}
+		// if err := f.blockBuilder.WriteTx(tx); err != nil {
+		// 	return nil, fmt.Errorf("failed to apply distribute rewards transaction: %w", err)
+		// }
 	}
 
 	if f.config.IsBridgeEnabled() {
@@ -244,6 +245,7 @@ func (f *fsm) getValidatorsTransition(delta *ValidatorSetDelta) (AccountSet, err
 // createCommitEpochTx create a StateTransaction, which invokes ValidatorSet smart contract
 // and sends all the necessary metadata to it.
 func (f *fsm) createCommitEpochTx() (*types.Transaction, error) {
+	fmt.Println("createCommitEpochTx inmput", f.commitEpochInput)
 	input, err := f.commitEpochInput.EncodeAbi()
 	if err != nil {
 		return nil, err
@@ -492,11 +494,12 @@ func (f *fsm) VerifyStateTransactions(transactions []*types.Transaction) error {
 			return errCommitEpochTxDoesNotExist
 		}
 
-		if !distributeRewardsTxExists {
-			// this is a check if distribute rewards transaction is not in the list of transactions at all
-			// but it should be
-			return errDistributeRewardsTxDoesNotExist
-		}
+		// H_MODIFY: We don't have distribute tx (distribution happens on commit epoch tx)
+		// if !distributeRewardsTxExists {
+		// 	// this is a check if distribute rewards transaction is not in the list of transactions at all
+		// 	// but it should be
+		// 	return errDistributeRewardsTxDoesNotExist
+		// }
 	}
 
 	return nil

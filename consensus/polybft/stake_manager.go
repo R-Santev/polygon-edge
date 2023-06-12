@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/big"
 	"sort"
 	"strings"
@@ -12,7 +13,6 @@ import (
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/contractsapi"
 	bls "github.com/0xPolygon/polygon-edge/consensus/polybft/signer"
 	"github.com/0xPolygon/polygon-edge/helper/hex"
-	"github.com/0xPolygon/polygon-edge/txrelayer"
 	"github.com/0xPolygon/polygon-edge/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/umbracle/ethgo"
@@ -48,14 +48,16 @@ var _ StakeManager = (*stakeManager)(nil)
 // stakeManager saves transfer events that happened in each block
 // and calculates updated validator set based on changed stake
 type stakeManager struct {
-	logger                  hclog.Logger
-	state                   *State
-	rootChainRelayer        txrelayer.TxRelayer
-	blockchain              blockchainBackend
-	key                     ethgo.Key
-	validatorSetContract    types.Address
-	supernetManagerContract types.Address
-	maxValidatorSetSize     int
+	logger hclog.Logger
+	state  *State
+	// H_MODIFY: Root chain is unused so remvoe rootchain relayer
+	// rootChainRelayer        txrelayer.TxRelayer
+	blockchain           blockchainBackend
+	key                  ethgo.Key
+	validatorSetContract types.Address
+	// H_MODIFY: Supernet manager is unused so remove supernet manager
+	// supernetManagerContract types.Address
+	maxValidatorSetSize int
 }
 
 // newStakeManager returns a new instance of stake manager
@@ -63,20 +65,17 @@ func newStakeManager(
 	logger hclog.Logger,
 	state *State,
 	blockchain blockchainBackend,
-	rootchainRelayer txrelayer.TxRelayer,
 	key ethgo.Key,
-	validatorSetAddr, supernetManagerAddr types.Address,
+	validatorSetAddr types.Address,
 	maxValidatorSetSize int,
 ) *stakeManager {
 	return &stakeManager{
-		logger:                  logger,
-		state:                   state,
-		blockchain:              blockchain,
-		rootChainRelayer:        rootchainRelayer,
-		key:                     key,
-		validatorSetContract:    validatorSetAddr,
-		supernetManagerContract: supernetManagerAddr,
-		maxValidatorSetSize:     maxValidatorSetSize,
+		logger:               logger,
+		state:                state,
+		blockchain:           blockchain,
+		key:                  key,
+		validatorSetContract: validatorSetAddr,
+		maxValidatorSetSize:  maxValidatorSetSize,
 	}
 }
 
@@ -137,6 +136,10 @@ func (s *stakeManager) PostBlock(req *PostBlockRequest) error {
 		}
 
 		systemState := s.blockchain.GetSystemState(provider)
+		exponent, err := systemState.GetVotingPowerExponent()
+		if err != nil {
+			return fmt.Errorf("could not retrieve voting power exponent")
+		}
 
 		for a := range updatedValidatorsStake {
 			stake, err := systemState.GetStakeOnValidatorSet(a)
@@ -144,7 +147,7 @@ func (s *stakeManager) PostBlock(req *PostBlockRequest) error {
 				return fmt.Errorf("could not retrieve balance of validator %v on ValidatorSet", a)
 			}
 
-			stakeMap.setStake(a, stake)
+			stakeMap.setStake(a, stake, exponent)
 		}
 	}
 
@@ -156,7 +159,8 @@ func (s *stakeManager) PostBlock(req *PostBlockRequest) error {
 			}
 		}
 
-		data.IsActive = data.VotingPower.Cmp(bigZero) > 0
+		// H_MODIFY: IsActive is properly handled in setStake
+		// data.IsActive = data.VotingPower.Cmp(bigZero) > 0
 	}
 
 	return s.state.StakeStore.insertFullValidatorSet(validatorSetState{
@@ -274,55 +278,31 @@ func (s *stakeManager) getTransferEventsFromReceipts(receipts []*types.Receipt) 
 	return events, nil
 }
 
-// getBlsKey returns bls key for validator from the supernet contract
+// H_MODIFY: getBlsKey returns bls key for validator from the childValidatorSet contract
 func (s *stakeManager) getBlsKey(address types.Address) (*bls.PublicKey, error) {
-	getValidatorFn := &contractsapi.GetValidatorCustomSupernetManagerFn{
-		Validator_: address,
-	}
-
-	encoded, err := getValidatorFn.EncodeAbi()
+	header := s.blockchain.CurrentHeader()
+	systemState, err := s.getSystemState(header)
 	if err != nil {
 		return nil, err
 	}
 
-	response, err := s.rootChainRelayer.Call(
-		s.key.Address(),
-		ethgo.Address(s.supernetManagerContract),
-		encoded)
-	if err != nil {
-		return nil, fmt.Errorf("failed to invoke validators function on the supernet manager: %w", err)
-	}
-
-	byteResponse, err := hex.DecodeHex(response)
-	if err != nil {
-		return nil, fmt.Errorf("unable to decode hex response, %w", err)
-	}
-
-	decoded, err := validatorTypeABI.Decode(byteResponse)
+	blsKey, err := systemState.GetValidatorBlsKey(address)
 	if err != nil {
 		return nil, err
 	}
 
-	//nolint:godox
-	// TODO - @goran-ethernal change this to use the generated stub
-	// once we remove old ChildValidatorSet stubs and generate new ones
-	// from the new contract
-	output, ok := decoded.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("could not convert decoded outputs to map")
-	}
+	return blsKey, nil
+}
 
-	blsKey, ok := output["blsKey"].([4]*big.Int)
-	if !ok {
-		return nil, fmt.Errorf("failed to decode blskey")
-	}
-
-	pubKey, err := bls.UnmarshalPublicKeyFromBigInt(blsKey)
+func (s *stakeManager) getSystemState(block *types.Header) (SystemState, error) {
+	header := s.blockchain.CurrentHeader()
+	provider, err := s.blockchain.GetStateProviderForBlock(header)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal BLS public key: %w", err)
+		return nil, err
 	}
 
-	return pubKey, nil
+	systemState := s.blockchain.GetSystemState(provider)
+	return systemState, nil
 }
 
 type validatorSetState struct {
@@ -353,22 +333,40 @@ func newValidatorStakeMap(validatorSet AccountSet) validatorStakeMap {
 	return stakeMap
 }
 
+// H_MODIFY: Calculate voting power with our own formula
+// Set is active flag based on voting power and not on staked amount
 // setStake sets given amount of stake to a validator defined by address
-func (sc *validatorStakeMap) setStake(address types.Address, amount *big.Int) {
-	isActive := amount.Cmp(bigZero) > 0
+func (sc *validatorStakeMap) setStake(address types.Address, amount *big.Int, exponent *VotingPowerExponent) {
+	votingPower := sc.calcVotingPower(amount, exponent)
+	isActive := votingPower.Cmp(bigZero) > 0
 
 	if metadata, exists := (*sc)[address]; exists {
-		metadata.VotingPower = amount
+		metadata.VotingPower = votingPower
 		metadata.IsActive = isActive
 	} else {
 		(*sc)[address] = &ValidatorMetadata{
-			VotingPower: new(big.Int).Set(amount),
+			VotingPower: votingPower,
 			Address:     address,
 			IsActive:    isActive,
 		}
 	}
 }
 
+// calcVotingPower calculates voting power for a given staked balance
+func (sc *validatorStakeMap) calcVotingPower(stakedBalance *big.Int, exp *VotingPowerExponent) *big.Int {
+	// in case validator unstaked its full balance
+	if stakedBalance.Cmp(bigZero) == 0 {
+		return bigZero
+	}
+
+	stakedH := big.NewInt(0).Div(stakedBalance, big.NewInt(1e18))
+	vpower := math.Pow(float64(stakedH.Uint64()), float64(exp.Numerator.Uint64())/float64(exp.Denominator.Uint64()))
+	res := big.NewInt(int64(vpower))
+
+	return res
+}
+
+// H: getActiveValidators is moved in the node. In 0.7.0 version of the contracts it is implemented there
 // getActiveValidators returns all validators (*ValidatorMetadata) in sorted order
 func (sc validatorStakeMap) getActiveValidators(maxValidatorSetSize int) AccountSet {
 	activeValidators := make(AccountSet, 0, len(sc))

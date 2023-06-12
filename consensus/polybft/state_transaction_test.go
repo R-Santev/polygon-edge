@@ -187,7 +187,7 @@ func TestStateTransaction_Signature(t *testing.T) {
 	}{
 		{
 			contractsapi.ValidatorSet.Abi.GetMethod("commitEpoch"),
-			"0f50287c",
+			"410899c9",
 		},
 	}
 	for _, c := range cases {
@@ -206,6 +206,16 @@ func TestStateTransaction_Encoding(t *testing.T) {
 				StartBlock: big.NewInt(1),
 				EndBlock:   big.NewInt(10),
 				EpochRoot:  types.Hash{},
+			},
+			Uptime: &contractsapi.Uptime{
+				EpochID: new(big.Int).SetUint64(1),
+				UptimeData: []*contractsapi.UptimeData{
+					{
+						Validator:    types.Address{0x1},
+						SignedBlocks: big.NewInt(1),
+					},
+				},
+				TotalBlocks: big.NewInt(1),
 			},
 		},
 	}

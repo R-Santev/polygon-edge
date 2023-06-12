@@ -80,9 +80,8 @@ func TestStakeManager_PostBlock(t *testing.T) {
 			hclog.NewNullLogger(),
 			state,
 			blockchainMock,
-			nil,
 			wallet.NewEcdsaSigner(validators.getValidator("A").Key()),
-			types.StringToAddress("0x0001"), types.StringToAddress("0x0002"),
+			types.StringToAddress("0x0001"),
 			5,
 		)
 
@@ -143,9 +142,8 @@ func TestStakeManager_PostBlock(t *testing.T) {
 			hclog.NewNullLogger(),
 			state,
 			blockchainMock,
-			nil,
 			wallet.NewEcdsaSigner(validators.getValidator("A").Key()),
-			types.StringToAddress("0x0001"), types.StringToAddress("0x0002"),
+			types.StringToAddress("0x0001"),
 			5,
 		)
 
@@ -215,9 +213,8 @@ func TestStakeManager_PostBlock(t *testing.T) {
 			hclog.NewNullLogger(),
 			state,
 			blockchainMock,
-			txRelayerMock,
 			wallet.NewEcdsaSigner(validators.getValidator("A").Key()),
-			types.StringToAddress("0x0001"), types.StringToAddress("0x0002"),
+			types.StringToAddress("0x0001"),
 			5,
 		)
 
@@ -275,9 +272,8 @@ func TestStakeManager_UpdateValidatorSet(t *testing.T) {
 		hclog.NewNullLogger(),
 		state,
 		nil,
-		nil,
 		wallet.NewEcdsaSigner(validators.getValidator("A").Key()),
-		types.StringToAddress("0x0001"), types.StringToAddress("0x0002"),
+		types.StringToAddress("0x0001"),
 		10,
 	)
 

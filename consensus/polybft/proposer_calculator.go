@@ -10,6 +10,9 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
+// H_MODIFY: TODO: Maybe we would need to change something here, because we use different formula for the voting power
+// so it results in some impact on the priority calculation
+
 var (
 	// priorityWindowSizeFactor - is a constant that when multiplied with the
 	// total voting power gives the maximum allowed distance between validator

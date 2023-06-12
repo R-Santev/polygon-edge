@@ -66,6 +66,12 @@ func createTestCommitEpochInput(t *testing.T, epochID uint64,
 		startBlock = (epochID - 1) * epochSize
 	}
 
+	uptime := &contractsapi.Uptime{
+		EpochID:     new(big.Int).SetUint64(epochID),
+		UptimeData:  []*contractsapi.UptimeData{},
+		TotalBlocks: new(big.Int).SetUint64(epochSize),
+	}
+
 	commitEpoch := &contractsapi.CommitEpochValidatorSetFn{
 		ID: new(big.Int).SetUint64(epochID),
 		Epoch: &contractsapi.Epoch{
@@ -73,6 +79,42 @@ func createTestCommitEpochInput(t *testing.T, epochID uint64,
 			EndBlock:   new(big.Int).SetUint64(epochSize * epochID),
 			EpochRoot:  types.Hash{},
 		},
+		Uptime: uptime,
+	}
+
+	return commitEpoch
+}
+
+func createTestCommitEpochInputWithVals(t *testing.T, epochID uint64, validatorSet AccountSet, epochSize uint64) *contractsapi.CommitEpochValidatorSetFn {
+	t.Helper()
+
+	if validatorSet == nil {
+		validatorSet = newTestValidators(t, 5).getPublicIdentities()
+	}
+
+	var startBlock uint64 = 0
+	if epochID > 1 {
+		startBlock = (epochID - 1) * epochSize
+	}
+
+	uptime := &contractsapi.Uptime{
+		EpochID:     new(big.Int).SetUint64(epochID),
+		UptimeData:  []*contractsapi.UptimeData{},
+		TotalBlocks: new(big.Int).SetUint64(epochSize),
+	}
+
+	commitEpoch := &contractsapi.CommitEpochValidatorSetFn{
+		ID: uptime.EpochID,
+		Epoch: &contractsapi.Epoch{
+			StartBlock: new(big.Int).SetUint64(startBlock + 1),
+			EndBlock:   new(big.Int).SetUint64(epochSize * epochID),
+			EpochRoot:  types.Hash{},
+		},
+		Uptime: uptime,
+	}
+
+	for i := range validatorSet {
+		uptime.AddValidatorUptime(validatorSet[i].Address, int64(epochSize))
 	}
 
 	return commitEpoch
@@ -82,23 +124,25 @@ func createTestDistributeRewardsInput(t *testing.T, epochID uint64,
 	validatorSet AccountSet, epochSize uint64) *contractsapi.DistributeRewardForRewardPoolFn {
 	t.Helper()
 
-	if validatorSet == nil {
-		validatorSet = newTestValidators(t, 5).getPublicIdentities()
-	}
+	// if validatorSet == nil {
+	// 	validatorSet = newTestValidators(t, 5).getPublicIdentities()
+	// }
 
-	uptime := make([]*contractsapi.Uptime, len(validatorSet))
+	// uptime := make([]*contractsapi.Uptime, len(validatorSet))
 
-	for i, v := range validatorSet {
-		uptime[i] = &contractsapi.Uptime{
-			Validator:    v.Address,
-			SignedBlocks: new(big.Int).SetUint64(epochSize),
-		}
-	}
+	// for i, v := range validatorSet {
+	// 	uptime[i] = &contractsapi.Uptime{
+	// 		Validator:    v.Address,
+	// 		SignedBlocks: new(big.Int).SetUint64(epochSize),
+	// 	}
+	// }
 
-	return &contractsapi.DistributeRewardForRewardPoolFn{
-		EpochID: new(big.Int).SetUint64(epochID),
-		Uptime:  uptime,
-	}
+	// return &contractsapi.DistributeRewardForRewardPoolFn{
+	// 	EpochID: new(big.Int).SetUint64(epochID),
+	// 	Uptime:  uptime,
+	// }
+
+	return nil
 }
 
 func generateStateSyncEvents(t *testing.T, eventsCount int, startIdx uint64) []*contractsapi.StateSyncedEvent {

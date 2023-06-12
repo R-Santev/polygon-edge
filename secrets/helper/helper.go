@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	bls "github.com/0xPolygon/polygon-edge/consensus/polybft/signer"
+	"github.com/0xPolygon/polygon-edge/consensus/polybft/wallet"
 	"github.com/0xPolygon/polygon-edge/crypto"
 	"github.com/0xPolygon/polygon-edge/helper/hex"
 	"github.com/0xPolygon/polygon-edge/network"
@@ -240,4 +242,49 @@ func InitCloudSecretsManager(secretsConfig *secrets.SecretsManagerConfig) (secre
 	}
 
 	return secretsManager, nil
+}
+
+// H_MODIFY: add new func to init BLS signature to be used in the initial setup
+func InitValidatorBLSSignature(
+	secretsManager secrets.SecretsManager, account *wallet.Account, chainID int64) ([]byte, error) {
+	if secretsManager.HasSecret(secrets.ValidatorBLSSignature) {
+		return nil, fmt.Errorf(`secrets "%s" has been already initialized`, secrets.ValidatorBLSSignature)
+	}
+
+	// Generate the signature
+	s, err := bls.MakeKOSKSignature(
+		account.Bls,
+		types.Address(account.Ecdsa.Address()),
+		chainID,
+		bls.DomainValidatorSet,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	sb, err := s.Marshal()
+	if err != nil {
+		return nil, err
+	}
+
+	// Write the signature to the secrets manager storage
+	if err := secretsManager.SetSecret(
+		secrets.ValidatorBLSSignature,
+		[]byte(hex.EncodeToString(sb)),
+	); err != nil {
+		return nil, err
+	}
+
+	return sb, nil
+}
+
+// LoadBLSSignature loads BLS Signature from SecretsManager and returns it
+func LoadBLSSignature(secretsManager secrets.SecretsManager) (string, error) {
+	if !secretsManager.HasSecret(secrets.ValidatorBLSSignature) {
+		return "", nil
+	}
+
+	s, err := secretsManager.GetSecret(secrets.ValidatorBLSSignature)
+
+	return string(s), err
 }

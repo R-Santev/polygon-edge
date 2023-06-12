@@ -46,6 +46,10 @@ func newValidatorsSnapshotCache(
 	}
 }
 
+// H: snapshot is built based on validatorSetDelta extra field in the last block of an epoch
+// starts from genesis if no later snaspshot is found
+// It tries to find it in the program cache first, and if not found, it checks the db (state_store_epoch)
+
 // GetSnapshot tries to retrieve the most recent cached snapshot (if any) and
 // applies pending validator set deltas to it.
 // Otherwise, it builds a snapshot from scratch and applies pending validator set deltas.
@@ -53,11 +57,14 @@ func (v *validatorsSnapshotCache) GetSnapshot(blockNumber uint64, parents []*typ
 	v.lock.Lock()
 	defer v.lock.Unlock()
 
+	// get extra field from the block
 	_, extra, err := getBlockData(blockNumber, v.blockchain)
 	if err != nil {
+		// log message here
 		return nil, err
 	}
 
+	// check if the block is epoch ending block
 	isEpochEndingBlock, err := isEpochEndingBlock(blockNumber, extra, v.blockchain)
 	if err != nil && !errors.Is(err, blockchain.ErrNoBlock) {
 		// if there is no block after given block, we assume its not epoch ending block
