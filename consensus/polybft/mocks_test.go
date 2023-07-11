@@ -63,7 +63,12 @@ func (m *blockchainMock) GetStateProviderForBlock(block *types.Header) (contract
 	args := m.Called(block)
 	stateProvider, _ := args.Get(0).(contract.Provider)
 
-	return stateProvider, nil
+	var err error
+	if args.Get(1) != nil {
+		err, _ = args.Get(1).(error)
+	}
+
+	return stateProvider, err
 }
 
 func (m *blockchainMock) GetStateProvider(transition *state.Transition) contract.Provider {
@@ -255,8 +260,38 @@ func (s *systemStateMock) GetValidatorBlsKey(addr types.Address) (*bls.PublicKey
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (s *systemStateMock) GetVotingPowerExponent() (exponent *VotingPowerExponent, err error) {
+func (s *systemStateMock) GetVotingPowerExponent() (exponent *BigNumDecimal, err error) {
 	return nil, fmt.Errorf("not implemented")
+}
+
+func (s *systemStateMock) GetBaseReward() (*BigNumDecimal, error) {
+	args := s.Called()
+	reward, _ := args.Get(0).(*BigNumDecimal)
+	var err error
+	if args.Get(1) != nil {
+		err, _ = args.Get(1).(error)
+	}
+
+	return reward, err
+}
+
+func (s *systemStateMock) GetStakedBalance() (*big.Int, error) {
+	args := s.Called()
+	balance, _ := args.Get(0).(*big.Int)
+	var err error
+	if args.Get(1) != nil {
+		err, _ = args.Get(1).(error)
+	}
+
+	return balance, err
+}
+
+func (s *systemStateMock) GetMacroFactor() (*big.Int, error) {
+	return big.NewInt(7500), nil
+}
+
+func (s *systemStateMock) GetMaxRSI() (*big.Int, error) {
+	return big.NewInt(15000), nil
 }
 
 var _ contract.Provider = (*stateProviderMock)(nil)

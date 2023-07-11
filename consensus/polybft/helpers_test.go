@@ -15,6 +15,7 @@ import (
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/wallet"
 	"github.com/0xPolygon/polygon-edge/types"
 	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -83,6 +84,23 @@ func createTestCommitEpochInput(t *testing.T, epochID uint64,
 	}
 
 	return commitEpoch
+}
+
+func createTestCommitEpochTxValue(t *testing.T, stakedBalance *big.Int) *big.Int {
+	blockchainMock := new(blockchainMock)
+	stateProviderMock := new(stateProviderMock)
+	systemStateMock := new(systemStateMock)
+	blockchainMock.On("GetStateProviderForBlock", mock.Anything).Return(stateProviderMock, nil)
+	blockchainMock.On("GetSystemState", stateProviderMock).Return(systemStateMock)
+	systemStateMock.On("GetStakedBalance").Return(stakedBalance, nil)
+	systemStateMock.On("GetBaseReward").Return(&BigNumDecimal{Numerator: big.NewInt(500), Denominator: big.NewInt(10000)}, nil)
+
+	rc := NewRewardsCalculator(hclog.NewNullLogger(), blockchainMock)
+
+	maxReward, err := rc.GetMaxReward(&types.Header{})
+	require.NoError(t, err)
+
+	return maxReward
 }
 
 func createTestCommitEpochInputWithVals(t *testing.T, epochID uint64, validatorSet AccountSet, epochSize uint64) *contractsapi.CommitEpochValidatorSetFn {

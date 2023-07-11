@@ -12,8 +12,8 @@ import (
 	"github.com/umbracle/ethgo/contract"
 )
 
-// VotingPowerExponent is a data transfer object which holds voting power exponent used to balance the voting power
-type VotingPowerExponent struct {
+// BigNumDecimal is a data transfer object which holds bigNumbers that consist of numerator and denominator
+type BigNumDecimal struct {
 	Numerator   *big.Int
 	Denominator *big.Int
 }
@@ -37,9 +37,17 @@ type SystemState interface {
 	// GetStakeOnValidatorSet retrieves stake of given validator on ValidatorSet contract
 	GetStakeOnValidatorSet(validatorAddr types.Address) (*big.Int, error)
 	// GetVotingPowerExponent retrieves voting power exponent from the ChildValidatorSet smart contract
-	GetVotingPowerExponent() (exponent *VotingPowerExponent, err error)
+	GetVotingPowerExponent() (exponent *BigNumDecimal, err error)
 	// GetValidatorBlsKey retrieves validator BLS public key from the ChildValidatorSet smart contract
 	GetValidatorBlsKey(addr types.Address) (*bls.PublicKey, error)
+	// GetBaseRewar retrieves base reward from the ChildValidatorSet smart contract
+	GetBaseReward() (*BigNumDecimal, error)
+	// GetStakedBalance retrieves total staked balance from the ChildValidatorSet smart contract
+	GetStakedBalance() (*big.Int, error)
+	// GetMacroFactor retrieves APR macro factor from the ChildValidatorSet smart contract
+	GetMacroFactor() (*big.Int, error)
+	// GetMaxRSI retrieves the max RSI from the ChildValidatorSet smart contract
+	GetMaxRSI() (*big.Int, error)
 }
 
 var _ SystemState = &SystemStateImpl{}
@@ -98,7 +106,6 @@ func (s *SystemStateImpl) GetStakeOnValidatorSet(validatorAddr types.Address) (*
 
 // GetEpoch retrieves current epoch number from the smart contract
 func (s *SystemStateImpl) GetEpoch() (uint64, error) {
-	// check how system tx is executed and why epoch data is not changed
 	rawResult, err := s.validatorContract.Call("currentEpochId", ethgo.Latest)
 	if err != nil {
 		return 0, err
@@ -114,7 +121,7 @@ func (s *SystemStateImpl) GetEpoch() (uint64, error) {
 }
 
 // H: add a function to fetch the voting power exponent
-func (s *SystemStateImpl) GetVotingPowerExponent() (exponent *VotingPowerExponent, err error) {
+func (s *SystemStateImpl) GetVotingPowerExponent() (exponent *BigNumDecimal, err error) {
 	rawOutput, err := s.validatorContract.Call("getExponent", ethgo.Latest)
 	if err != nil {
 		return nil, err
@@ -130,7 +137,67 @@ func (s *SystemStateImpl) GetVotingPowerExponent() (exponent *VotingPowerExponen
 		return nil, fmt.Errorf("failed to decode voting power exponent denominator")
 	}
 
-	return &VotingPowerExponent{Numerator: expNumerator, Denominator: expDenominator}, nil
+	return &BigNumDecimal{Numerator: expNumerator, Denominator: expDenominator}, nil
+}
+
+// GetBaseReward H: fetch the base reward from the validators contract
+func (s *SystemStateImpl) GetBaseReward() (baseReward *BigNumDecimal, err error) {
+	rawOutput, err := s.validatorContract.Call("getBase", ethgo.Latest)
+	if err != nil {
+		return nil, err
+	}
+
+	numerator, ok := rawOutput["nominator"].(*big.Int)
+	if !ok {
+		return nil, fmt.Errorf("failed to decode baseReward numerator")
+	}
+
+	return &BigNumDecimal{Numerator: numerator, Denominator: big.NewInt(10000)}, nil
+}
+
+// GetMaxRSI H: fetch the max RSI bonus from the ChildValidatorSet contract
+func (s *SystemStateImpl) GetMaxRSI() (maxRSI *big.Int, err error) {
+	rawOutput, err := s.validatorContract.Call("getMaxRSI", ethgo.Latest)
+	if err != nil {
+		return nil, err
+	}
+
+	maxRSI, ok := rawOutput["nominator"].(*big.Int)
+	if !ok {
+		return nil, fmt.Errorf("failed to decode max RSI numerator")
+	}
+
+	return maxRSI, nil
+}
+
+// GetStakedBalance H: fetch the total staked balance from the validators contract
+func (s *SystemStateImpl) GetStakedBalance() (*big.Int, error) {
+	rawOutput, err := s.validatorContract.Call("totalStake", ethgo.Latest)
+	if err != nil {
+		return nil, err
+	}
+
+	stake, ok := rawOutput["0"].(*big.Int)
+	if !ok {
+		return nil, fmt.Errorf("failed to decode total stake")
+	}
+
+	return stake, nil
+}
+
+// GetMacroFactor H: fetch the APR macro factor from the validators contract
+func (s *SystemStateImpl) GetMacroFactor() (*big.Int, error) {
+	rawOutput, err := s.validatorContract.Call("getMacro", ethgo.Latest)
+	if err != nil {
+		return nil, err
+	}
+
+	macro, ok := rawOutput["nominator"].(*big.Int)
+	if !ok {
+		return nil, fmt.Errorf("failed to decode macro factor value")
+	}
+
+	return macro, nil
 }
 
 // H: add a function to fetch the validator bls key

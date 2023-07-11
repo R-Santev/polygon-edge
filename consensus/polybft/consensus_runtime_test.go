@@ -539,6 +539,51 @@ func TestConsensusRuntime_restartEpoch_SameEpochNumberAsTheLastOne(t *testing.T)
 	blockchainMock.AssertExpectations(t)
 }
 
+func TestConsensusRuntime_calculateCommitEpochTxValue(t *testing.T) {
+	t.Parallel()
+
+	block := &types.Header{}
+
+	t.Run("return err of inner call", func(t *testing.T) {
+		blockchainMock := new(blockchainMock)
+		blockchainMock.On("GetStateProviderForBlock", block).Return(nil, assert.AnError)
+
+		rewardsCalculator := &rewardsCalculator{
+			blockchain: blockchainMock,
+		}
+
+		runtime := &consensusRuntime{
+			rewardsCalculator: rewardsCalculator,
+		}
+
+		txValue, err := runtime.calculateCommitEpochTxValue(block)
+		assert.Nil(t, txValue)
+		assert.EqualError(t, err, assert.AnError.Error())
+	})
+
+	t.Run("success", func(t *testing.T) {
+		blockchainMock := new(blockchainMock)
+		stateProviderMock := new(stateProviderMock)
+		systemStateMock := new(systemStateMock)
+		blockchainMock.On("GetStateProviderForBlock", block).Return(stateProviderMock, nil)
+		blockchainMock.On("GetSystemState", stateProviderMock).Return(systemStateMock)
+		systemStateMock.On("GetStakedBalance").Return(big.NewInt(1000), nil)
+		systemStateMock.On("GetBaseReward").Return(&BigNumDecimal{Numerator: big.NewInt(500), Denominator: big.NewInt(10000)}, nil)
+
+		rewardsCalculator := &rewardsCalculator{
+			blockchain: blockchainMock,
+		}
+
+		runtime := &consensusRuntime{
+			rewardsCalculator: rewardsCalculator,
+		}
+
+		txValue, err := runtime.calculateCommitEpochTxValue(block)
+		assert.NoError(t, err)
+		assert.Equal(t, big.NewInt(7875), txValue)
+	})
+}
+
 func TestConsensusRuntime_calculateCommitEpochInput_SecondEpoch(t *testing.T) {
 	t.Parallel()
 

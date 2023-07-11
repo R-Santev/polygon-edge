@@ -336,7 +336,7 @@ func newValidatorStakeMap(validatorSet AccountSet) validatorStakeMap {
 // H_MODIFY: Calculate voting power with our own formula
 // Set is active flag based on voting power and not on staked amount
 // setStake sets given amount of stake to a validator defined by address
-func (sc *validatorStakeMap) setStake(address types.Address, amount *big.Int, exponent *VotingPowerExponent) {
+func (sc *validatorStakeMap) setStake(address types.Address, amount *big.Int, exponent *BigNumDecimal) {
 	votingPower := sc.calcVotingPower(amount, exponent)
 	isActive := votingPower.Cmp(bigZero) > 0
 
@@ -353,7 +353,7 @@ func (sc *validatorStakeMap) setStake(address types.Address, amount *big.Int, ex
 }
 
 // calcVotingPower calculates voting power for a given staked balance
-func (sc *validatorStakeMap) calcVotingPower(stakedBalance *big.Int, exp *VotingPowerExponent) *big.Int {
+func (sc *validatorStakeMap) calcVotingPower(stakedBalance *big.Int, exp *BigNumDecimal) *big.Int {
 	// in case validator unstaked its full balance
 	if stakedBalance.Cmp(bigZero) == 0 {
 		return bigZero

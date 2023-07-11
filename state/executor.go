@@ -515,11 +515,12 @@ func (t *Transition) checkDynamicFees(msg *types.Transaction) error {
 // surfacing of these errors reject the transaction thus not including it in the block
 
 var (
-	ErrNonceIncorrect        = fmt.Errorf("incorrect nonce")
-	ErrNotEnoughFundsForGas  = fmt.Errorf("not enough funds to cover gas costs")
-	ErrBlockLimitReached     = fmt.Errorf("gas limit reached in the pool")
-	ErrIntrinsicGasOverflow  = fmt.Errorf("overflow in intrinsic gas calculation")
-	ErrNotEnoughIntrinsicGas = fmt.Errorf("not enough gas supplied for intrinsic gas costs")
+	ErrNonceIncorrect               = fmt.Errorf("incorrect nonce")
+	ErrNotEnoughFundsForGas         = fmt.Errorf("not enough funds to cover gas costs")
+	ErrBlockLimitReached            = fmt.Errorf("gas limit reached in the pool")
+	ErrIntrinsicGasOverflow         = fmt.Errorf("overflow in intrinsic gas calculation")
+	ErrNotEnoughIntrinsicGas        = fmt.Errorf("not enough gas supplied for intrinsic gas costs")
+	ErrCannotClearSystemAddrBalance = fmt.Errorf("cannot clear system address balance when contract call failed")
 
 	// ErrTipAboveFeeCap is a sanity error to ensure no one is able to specify a
 	// transaction with a tip higher than the total fee cap.
@@ -577,6 +578,16 @@ func (t *Transition) apply(msg *types.Transaction) (*runtime.ExecutionResult, er
 		return nil, err
 	}
 
+	// H: fullfill system account's balance in case value is provided in tx
+	// System caller can be used in systemTxs only
+	// System transactions are verified at a higher level in fsm
+	// The above ensures fresh balance can be added only when consensus rules are met
+	areCoinsMinted := false
+	if msg.From == contracts.SystemCaller && msg.Value.Cmp(big.NewInt(0)) > 0 {
+		t.state.AddBalance(msg.From, msg.Value)
+		areCoinsMinted = true
+	}
+
 	// the amount of gas required is available in the block
 	if err = t.subGasPool(msg.Gas); err != nil {
 		return nil, NewGasLimitReachedTransitionApplicationError(err)
@@ -612,6 +623,15 @@ func (t *Transition) apply(msg *types.Transaction) (*runtime.ExecutionResult, er
 	} else {
 		t.state.IncrNonce(msg.From)
 		result = t.Call2(msg.From, *msg.To, msg.Input, value, gasLeft)
+	}
+
+	// H: In case call is not successful and the amount is not transfered,
+	// remove it from the system address
+	if areCoinsMinted && result != nil && result.Failed() {
+		err := t.state.SubBalance(msg.From, msg.Value)
+		if err != nil {
+			return nil, NewTransitionApplicationError(ErrCannotClearSystemAddrBalance, false)
+		}
 	}
 
 	refund := t.state.GetRefund()
@@ -1106,6 +1126,14 @@ func checkAndProcessTx(msg *types.Transaction, t *Transition) error {
 	// 3. caller has enough balance to cover transaction
 	if err := t.subGasLimitPrice(msg); err != nil {
 		return NewTransitionApplicationError(err, true)
+	}
+
+	// 4. caller must not be the system caller
+	if msg.From == contracts.SystemCaller {
+		return NewTransitionApplicationError(
+			fmt.Errorf("non-state transaction sender must NOT be %v, but got %v", contracts.SystemCaller, msg.From),
+			true,
+		)
 	}
 
 	return nil

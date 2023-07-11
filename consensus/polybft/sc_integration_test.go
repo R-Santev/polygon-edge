@@ -12,6 +12,8 @@ import (
 	"github.com/0xPolygon/polygon-edge/chain"
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/contractsapi"
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/contractsapi/artifact"
+	bls "github.com/0xPolygon/polygon-edge/consensus/polybft/signer"
+	"github.com/0xPolygon/polygon-edge/consensus/polybft/wallet"
 	"github.com/0xPolygon/polygon-edge/contracts"
 	"github.com/0xPolygon/polygon-edge/helper/hex"
 	"github.com/0xPolygon/polygon-edge/state"
@@ -249,17 +251,19 @@ import (
 // 	require.Equal(t, amount1, new(big.Int).SetBytes(res))
 // }
 
-// TODO:
-
 func TestIntegration_CommitEpoch(t *testing.T) {
 	t.Parallel()
 
 	// init validator sets
+	// (cannot run test case with more than 100 validators at the moment,
+	// because active validator set is capped to 100 on smart contract side)
 	validatorSetSize := []int{5, 10, 50, 100}
+	// number of delegators per validator
+	delegatorsPerValidator := 100
 
-	intialBalance := uint64(5 * math.Pow(10, 18)) // 5 tokens
-	reward := uint64(math.Pow(10, 18))            // 1 token
-	walletAddress := types.StringToAddress("1234889893")
+	intialBalance := uint64(5 * math.Pow(10, 18))  // 5 tokens
+	reward := uint64(math.Pow(10, 18))             // 1 token
+	delegateAmount := uint64(math.Pow(10, 18)) / 2 // 0.5 token
 
 	validatorSets := make([]*testValidators, len(validatorSetSize), len(validatorSetSize))
 
@@ -279,26 +283,21 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 	// iterate through the validator set and do the test for each of them
 	for _, currentValidators := range validatorSets {
 		accSet := currentValidators.getPublicIdentities()
+		accSetPrivateKeys := currentValidators.getPrivateIdentities()
+		valid2deleg := make(map[types.Address][]*wallet.Key, accSet.Len()) // delegators assigned to validators
+
+		// add contracts to genesis data
+		alloc := map[types.Address]*chain.GenesisAccount{
+			contracts.ValidatorSetContract: {
+				Code: contractsapi.ChildValidatorSet.DeployedBytecode,
+			},
+			contracts.BLSContract: {
+				Code: contractsapi.BLS.DeployedBytecode,
+			},
+		}
 
 		// validator data for polybft config
 		initValidators := make([]*Validator, accSet.Len())
-		// add contracts to genesis data
-		alloc := map[types.Address]*chain.GenesisAccount{
-			// CONTINUE: Remove allocation for unused contracts
-			// continue fixing tests
-			contracts.ValidatorSetContract: {
-				Code: contractsapi.ValidatorSet.DeployedBytecode,
-			},
-			// contracts.RewardPoolContract: {
-			// 	Code: contractsapi.RewardPool.DeployedBytecode,
-			// },
-			// contracts.NativeERC20TokenContract: {
-			// 	Code: contractsapi.NativeERC20.DeployedBytecode,
-			// },
-			walletAddress: {
-				Balance: new(big.Int).SetUint64(intialBalance),
-			},
-		}
 
 		for i, validator := range accSet {
 			// add validator to genesis data
@@ -306,14 +305,35 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 				Balance: validator.VotingPower,
 			}
 
+			signature, err := bls.MakeKOSKSignature(accSetPrivateKeys[i].Bls, validator.Address, 0, bls.DomainValidatorSet)
+			require.NoError(t, err)
+
+			signatureBytes, err := signature.Marshal()
+			require.NoError(t, err)
+
 			// create validator data for polybft config
 			initValidators[i] = &Validator{
-				Address: validator.Address,
-				Balance: validator.VotingPower,
-				Stake:   validator.VotingPower,
-				BlsKey:  hex.EncodeToString(validator.BlsKey.Marshal()),
+				Address:      validator.Address,
+				Balance:      validator.VotingPower,
+				BlsKey:       hex.EncodeToString(validator.BlsKey.Marshal()),
+				BlsSignature: hex.EncodeToString(signatureBytes),
 			}
+
+			// create delegators
+			delegatorAccs := createRandomTestKeys(t, delegatorsPerValidator)
+
+			// add delegators to genesis data
+			for j := 0; j < delegatorsPerValidator; j++ {
+				delegator := delegatorAccs[j]
+				alloc[types.Address(delegator.Address())] = &chain.GenesisAccount{
+					Balance: new(big.Int).SetUint64(intialBalance),
+				}
+			}
+
+			valid2deleg[validator.Address] = delegatorAccs
 		}
+
+		transition := newTestTransition(t, alloc)
 
 		polyBFTConfig := PolyBFTConfig{
 			InitialValidatorSet: initValidators,
@@ -322,15 +342,7 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 			EpochReward:         reward,
 			// use 1st account as governance address
 			Governance: currentValidators.toValidatorSet().validators.GetAddresses()[0],
-			RewardConfig: &RewardsConfig{
-				TokenAddress:  contracts.NativeERC20TokenContract,
-				WalletAddress: walletAddress,
-				WalletAmount:  new(big.Int).SetUint64(intialBalance),
-			},
-			Bridge: nil,
 		}
-
-		transition := newTestTransition(t, alloc)
 
 		// get data for ChildValidatorSet initialization
 		initInput, err := getInitChildValidatorSetInput(polyBFTConfig)
@@ -340,65 +352,50 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 		err = initContract(contracts.SystemCaller, contracts.ValidatorSetContract, initInput, "ChildValidatorSet", transition)
 		require.NoError(t, err)
 
-		// H_Modify RewardPool is unused
-		// initInput, err = getInitRewardPoolInput(polyBFTConfig)
-		// require.NoError(t, err)
+		// delegate amounts to validators
+		for valAddress, delegators := range valid2deleg {
+			for _, delegator := range delegators {
+				encoded, err := contractsapi.ChildValidatorSet.Abi.Methods["delegate"].Encode(
+					[]interface{}{valAddress, false})
+				require.NoError(t, err)
 
-		// init RewardPool
-		// err = initContract(contracts.SystemCaller, contracts.RewardPoolContract, initInput, "RewardPool", transition)
-		// require.NoError(t, err)
-
-		// approve root token
-		approveFn := &contractsapi.ApproveRootERC20Fn{
-			Spender: contracts.RewardPoolContract,
-			Amount:  polyBFTConfig.RewardConfig.WalletAmount,
+				result := transition.Call2(types.Address(delegator.Address()), contracts.ValidatorSetContract, encoded, new(big.Int).SetUint64(delegateAmount), 1000000000000)
+				require.False(t, result.Failed())
+			}
 		}
 
-		input, err := approveFn.EncodeAbi()
+		// Get total active staked amount
+		encoded, err := hex.DecodeHex("28f73148") // totalActiveStake()
+		require.NoError(t, err)
+		activeStakeRes := transition.Call2(types.Address{0x0}, contracts.ValidatorSetContract, encoded, nil, 1000000000000)
+		require.False(t, activeStakeRes.Failed())
+		totalActiveStake := new(big.Int).SetBytes(activeStakeRes.ReturnValue)
+
+		commitEpochTxValue := createTestCommitEpochTxValue(t, totalActiveStake)
+
+		commitEpoch := createTestCommitEpochInputWithVals(t, 1, accSet, polyBFTConfig.EpochSize)
+		input, err := commitEpoch.EncodeAbi()
 		require.NoError(t, err)
 
-		err = initContract(polyBFTConfig.RewardConfig.WalletAddress,
-			polyBFTConfig.RewardConfig.TokenAddress, input, "RewardToken", transition)
-		require.NoError(t, err)
+		// Normally injecting balance to the system caller is handled by a higher order method in the executor.go
+		// but here we use call2 directly so we need to do it manually
+		transition.Txn().AddBalance(contracts.SystemCaller, commitEpochTxValue)
 
-		// create input for commit epoch
-		commitEpoch := createTestCommitEpochInput(t, 1, polyBFTConfig.EpochSize)
+		// call commit epoch
+		result := transition.Call2(contracts.SystemCaller, contracts.ValidatorSetContract, input, commitEpochTxValue, 10000000000)
+		require.NoError(t, result.Err)
+		t.Logf("Number of validators %d when we add %d of delegators, Gas used %+v\n", accSet.Len(), accSet.Len()*delegatorsPerValidator, result.GasUsed)
+
+		commitEpoch = createTestCommitEpochInputWithVals(t, 2, accSet, polyBFTConfig.EpochSize)
 		input, err = commitEpoch.EncodeAbi()
 		require.NoError(t, err)
 
-		// call commit epoch
-		result := transition.Call2(contracts.SystemCaller, contracts.ValidatorSetContract, input, big.NewInt(0), 10000000000)
-		require.NoError(t, result.Err)
-		t.Logf("Number of validators %d on commit epoch, Gas used %+v\n", accSet.Len(), result.GasUsed)
-
-		// H_MODIFY: Distribute rewards is unused
-		// create input for distribute rewards
-		// distributeRewards := createTestDistributeRewardsInput(t, 1, accSet, polyBFTConfig.EpochSize)
-		// input, err = distributeRewards.EncodeAbi()
-		// require.NoError(t, err)
-
-		// call reward distributor
-		// result = transition.Call2(contracts.SystemCaller, contracts.RewardPoolContract, input, big.NewInt(0), 10000000000)
-		// require.NoError(t, result.Err)
-		// t.Logf("Number of validators %d on reward distribution, Gas used %+v\n", accSet.Len(), result.GasUsed)
-
-		commitEpoch = createTestCommitEpochInput(t, 2, polyBFTConfig.EpochSize)
-		input, err = commitEpoch.EncodeAbi()
-		require.NoError(t, err)
+		transition.Txn().AddBalance(contracts.SystemCaller, commitEpochTxValue)
 
 		// call commit epoch
-		result = transition.Call2(contracts.SystemCaller, contracts.ValidatorSetContract, input, big.NewInt(0), 10000000000)
+		result = transition.Call2(contracts.SystemCaller, contracts.ValidatorSetContract, input, commitEpochTxValue, 10000000000)
 		require.NoError(t, result.Err)
-		t.Logf("Number of validators %d on commit epoch, Gas used %+v\n", accSet.Len(), result.GasUsed)
-
-		// distributeRewards = createTestDistributeRewardsInput(t, 2, accSet, polyBFTConfig.EpochSize)
-		// input, err = distributeRewards.EncodeAbi()
-		// require.NoError(t, err)
-
-		// // call reward distributor
-		// result = transition.Call2(contracts.SystemCaller, contracts.RewardPoolContract, input, big.NewInt(0), 10000000000)
-		// require.NoError(t, result.Err)
-		// t.Logf("Number of validators %d on reward distribution, Gas used %+v\n", accSet.Len(), result.GasUsed)
+		t.Logf("Number of validators %d, Number of delegator %d, Gas used %+v\n", accSet.Len(), accSet.Len()*delegatorsPerValidator, result.GasUsed)
 	}
 }
 
@@ -418,4 +415,12 @@ func deployAndInitContract(t *testing.T, transition *state.Transition, scArtifac
 	}
 
 	return deployResult.Address
+}
+
+func leftPadBytes(slice []byte, length int) []byte {
+	if len(slice) >= length {
+		return slice
+	}
+	padding := make([]byte, length-len(slice))
+	return append(padding, slice...)
 }
