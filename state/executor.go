@@ -659,7 +659,11 @@ func (t *Transition) apply(msg *types.Transaction) (*runtime.ExecutionResult, er
 
 	// Pay the coinbase fee as a miner reward using the calculated effective tip.
 	coinbaseFee := new(big.Int).Mul(new(big.Int).SetUint64(result.GasUsed), effectiveTip)
-	t.state.AddBalance(t.ctx.Coinbase, coinbaseFee)
+	// Hydra: burn half of the coinbase fee and send the other half to the fee handler contract
+	toBurnFee := new(big.Int).Div(coinbaseFee, big.NewInt(2))
+	t.state.AddBalance(contracts.HydraBurnAddress, toBurnFee)
+	toSellFee := new(big.Int).Sub(coinbaseFee, toBurnFee)
+	t.state.AddBalance(contracts.FeeHandlerContract, toSellFee)
 
 	// Burn some amount if the london hardfork is applied.
 	// Basically, burn amount is just transferred to the current burn contract.
@@ -1142,7 +1146,7 @@ func checkAndProcessTx(msg *types.Transaction, t *Transition) error {
 func checkAndProcessStateTx(msg *types.Transaction) error {
 	if msg.GasPrice.Cmp(big.NewInt(0)) != 0 {
 		return NewTransitionApplicationError(
-			errors.New("gasPrice of state transaction must be zero"),
+			fmt.Errorf("gasPrice of state transaction must be zero"),
 			true,
 		)
 	}

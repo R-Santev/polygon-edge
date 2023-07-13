@@ -1,6 +1,19 @@
-# General findings
+# H Docs
 
-## Validators update
+Additional documentation which gives details about our implementation.
+
+## Features
+
+Explanation of the main Hydra specific features.
+
+### Fee Distribution
+
+We've added a burn address to send there 50% of the fees. It is an EOA address we assume no one will be able to retrieve.
+We don't enable the --burn-address of the usptream implementation because it turns on the EIP1559 which is something we don't want to apply.
+
+## General findings
+
+### Validators update
 
 Events for change in the balance are handled after every block and validators state is saved in the DB
 At the end of the epoch the new state (lasly update at block endOfEpoch - 1) is applied.

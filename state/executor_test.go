@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/umbracle/ethgo"
 
 	"github.com/0xPolygon/polygon-edge/chain"
 	"github.com/0xPolygon/polygon-edge/contracts"
@@ -157,7 +158,91 @@ func Test_Transition_checkDynamicFees(t *testing.T) {
 	}
 }
 
-func TestExecutor_apply(t *testing.T) {
+func TestExecutor_apply_FeeDistribution(t *testing.T) {
+	state := newStateWithPreState(map[types.Address]*PreState{})
+
+	tr := NewTransition(chain.ForksInTime{}, state, newTxn(state))
+	tr.ctx = runtime.TxContext{
+		BaseFee: big.NewInt(100),
+	}
+
+	tr.gasPool = uint64(10000000)
+	to := types.BytesToAddress([]byte{0x22})
+	from := types.BytesToAddress([]byte{0x33})
+	tr.state.SetBalance(from, ethgo.Ether(100))
+
+	createTx := func(from *types.Address, value *big.Int, txType types.TxType, nonce uint64, gasPrice *big.Int) *types.Transaction {
+		return &types.Transaction{
+			From:     *from,
+			Value:    value,
+			Type:     txType,
+			GasPrice: gasPrice,
+			Gas:      1000000,
+			To:       &to,
+			Nonce:    nonce,
+		}
+	}
+
+	// Define test cases
+	tests := []struct {
+		name                    string
+		msg                     *types.Transaction
+		burnBalanceChange       *big.Int
+		feeHandlerBalanceChange *big.Int
+		expectedErr             error
+	}{
+		{
+			name:                    "No fee distribution when system tx",
+			msg:                     createTx(&contracts.SystemCaller, big.NewInt(1), types.StateTx, 0, big.NewInt(0)),
+			burnBalanceChange:       big.NewInt(0),
+			feeHandlerBalanceChange: big.NewInt(0),
+			expectedErr:             nil,
+		},
+		{
+			name:                    "No gas price allowed when system tx",
+			msg:                     createTx(&contracts.SystemCaller, big.NewInt(1), types.StateTx, 0, big.NewInt(15)),
+			burnBalanceChange:       big.NewInt(0),
+			feeHandlerBalanceChange: big.NewInt(0),
+			expectedErr:             fmt.Errorf("gasPrice of state transaction must be zero"),
+		},
+		{
+			name:                    "fee distribution 50/50 when legacy tx",
+			msg:                     createTx(&from, big.NewInt(1), types.LegacyTx, 0, big.NewInt(15)),
+			burnBalanceChange:       big.NewInt(157500),
+			feeHandlerBalanceChange: big.NewInt(157500),
+			expectedErr:             nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			burnBalanceBefore := tr.GetBalance(contracts.HydraBurnAddress)
+			feeHandlerBalanceBefore := tr.GetBalance(contracts.FeeHandlerContract)
+
+			_, err := tr.apply(tt.msg)
+			if tt.expectedErr != nil {
+				assert.Error(t, err, tt.expectedErr)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			expectedBurnBalance := new(big.Int).Add(burnBalanceBefore, tt.burnBalanceChange)
+			expectedFeeHandlerBalance := new(big.Int).Add(feeHandlerBalanceBefore, tt.feeHandlerBalanceChange)
+
+			assert.True(t, expectedBurnBalance.Cmp(tr.GetBalance(contracts.HydraBurnAddress)) == 0,
+				fmt.Sprintf("burn address balance is not correct. Expected %s, but got %s",
+					expectedBurnBalance.String(), tr.GetBalance(contracts.HydraBurnAddress).String()))
+
+			assert.True(t, expectedFeeHandlerBalance.Cmp(tr.GetBalance(contracts.FeeHandlerContract)) == 0,
+				fmt.Sprintf("Fee handler address balance is not correct. Expected %s, but got %s",
+					expectedFeeHandlerBalance.String(), tr.GetBalance(contracts.FeeHandlerContract).String()))
+
+			tr.state.SetBalance(contracts.HydraBurnAddress, ethgo.Ether(0))
+			tr.state.SetBalance(contracts.FeeHandlerContract, ethgo.Ether(0))
+		})
+	}
+}
+func TestExecutor_apply_SystemAddrBalanceInject(t *testing.T) {
 	state := newStateWithPreState(map[types.Address]*PreState{
 		{0x0}: {
 			Nonce:   1,
@@ -219,7 +304,6 @@ func TestExecutor_apply(t *testing.T) {
 		},
 	}
 
-	// Iterate through the test cases
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := tr.apply(tt.msg)
