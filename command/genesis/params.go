@@ -36,7 +36,6 @@ const (
 	posFlag               = "pos"
 	minValidatorCount     = "min-validator-count"
 	maxValidatorCount     = "max-validator-count"
-	mintableTokenFlag     = "mintable-native-token"
 	nativeTokenConfigFlag = "native-token-config"
 	rewardTokenCodeFlag   = "reward-token-code"
 	rewardWalletFlag      = "reward-wallet"
@@ -44,7 +43,7 @@ const (
 	defaultNativeTokenName     = "Polygon"
 	defaultNativeTokenSymbol   = "MATIC"
 	defaultNativeTokenDecimals = uint8(18)
-	nativeTokenParamsNumber    = 3
+	nativeTokenParamsNumber    = 4
 )
 
 // Legacy flags that need to be preserved for running clients
@@ -60,8 +59,8 @@ var (
 	errValidatorsNotSpecified = errors.New("validator information not specified")
 	errUnsupportedConsensus   = errors.New("specified consensusRaw not supported")
 	errInvalidEpochSize       = errors.New("epoch size must be greater than 1")
-	errInvalidTokenParams     = errors.New("native token params were not submitted in proper" +
-		" format <name:symbol:decimals count>")
+	errInvalidTokenParams     = errors.New("native token params were not submitted in proper format " +
+		"(<name:symbol:decimals count:mintable flag>)")
 	errRewardWalletAmountZero = errors.New("reward wallet amount can not be zero or negative")
 )
 
@@ -105,6 +104,7 @@ type genesisParams struct {
 	sprintSize           uint64
 	blockTime            time.Duration
 	epochReward          uint64
+	blockTimeDrift       uint64
 
 	initialStateRoot string
 
@@ -122,7 +122,6 @@ type genesisParams struct {
 	bridgeBlockListAdmin             []string
 	bridgeBlockListEnabled           []string
 
-	mintableNativeToken  bool
 	nativeTokenConfigRaw string
 	nativeTokenConfig    *polybft.TokenConfig
 
@@ -371,7 +370,7 @@ func (p *genesisParams) initGenesisConfig() error {
 	// Disable london hardfork if burn contract address is not provided
 	enabledForks := chain.AllForksEnabled
 	if len(p.burnContracts) == 0 {
-		enabledForks.London = nil
+		enabledForks.SetFork(chain.London, nil)
 	}
 
 	chainConfig := &chain.Chain{
@@ -478,32 +477,27 @@ func (p *genesisParams) validateRewardWallet() error {
 func (p *genesisParams) extractNativeTokenMetadata() error {
 	if p.nativeTokenConfigRaw == "" {
 		p.nativeTokenConfig = &polybft.TokenConfig{
-			Name:     defaultNativeTokenName,
-			Symbol:   defaultNativeTokenSymbol,
-			Decimals: defaultNativeTokenDecimals,
+			Name:       defaultNativeTokenName,
+			Symbol:     defaultNativeTokenSymbol,
+			Decimals:   defaultNativeTokenDecimals,
+			IsMintable: false,
 		}
 
 		return nil
 	}
 
 	params := strings.Split(p.nativeTokenConfigRaw, ":")
-	if len(params) != nativeTokenParamsNumber { // 3 parameters
+	if len(params) != nativeTokenParamsNumber {
 		return errInvalidTokenParams
 	}
 
-	p.nativeTokenConfig = &polybft.TokenConfig{
-		Name:     defaultNativeTokenName,
-		Symbol:   defaultNativeTokenSymbol,
-		Decimals: defaultNativeTokenDecimals,
-	}
-
-	p.nativeTokenConfig.Name = strings.TrimSpace(params[0])
-	if p.nativeTokenConfig.Name == "" {
+	name := strings.TrimSpace(params[0])
+	if name == "" {
 		return errInvalidTokenParams
 	}
 
-	p.nativeTokenConfig.Symbol = strings.TrimSpace(params[1])
-	if p.nativeTokenConfig.Symbol == "" {
+	symbol := strings.TrimSpace(params[1])
+	if symbol == "" {
 		return errInvalidTokenParams
 	}
 
@@ -512,7 +506,17 @@ func (p *genesisParams) extractNativeTokenMetadata() error {
 		return errInvalidTokenParams
 	}
 
-	p.nativeTokenConfig.Decimals = uint8(decimals)
+	isMintable, err := strconv.ParseBool(strings.TrimSpace(params[3]))
+	if err != nil {
+		return errInvalidTokenParams
+	}
+
+	p.nativeTokenConfig = &polybft.TokenConfig{
+		Name:       name,
+		Symbol:     symbol,
+		Decimals:   uint8(decimals),
+		IsMintable: isMintable,
+	}
 
 	return nil
 }

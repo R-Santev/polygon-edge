@@ -1,7 +1,5 @@
 package polybft
 
-// H_MODIFY: Checkpoint manager is unused
-
 // import (
 // 	"encoding/hex"
 // 	"errors"
@@ -23,6 +21,7 @@ package polybft
 
 // 	"github.com/0xPolygon/polygon-edge/consensus/polybft/bitmap"
 // 	bls "github.com/0xPolygon/polygon-edge/consensus/polybft/signer"
+// 	"github.com/0xPolygon/polygon-edge/consensus/polybft/validator"
 // 	"github.com/0xPolygon/polygon-edge/consensus/polybft/wallet"
 // 	"github.com/0xPolygon/polygon-edge/txrelayer"
 // 	"github.com/0xPolygon/polygon-edge/types"
@@ -38,8 +37,8 @@ package polybft
 
 // 	var aliases = []string{"A", "B", "C", "D", "E"}
 
-// 	validators := newTestValidatorsWithAliases(t, aliases)
-// 	validatorsMetadata := validators.getPublicIdentities()
+// 	validators := validator.NewTestValidatorsWithAliases(t, aliases)
+// 	validatorsMetadata := validators.GetPublicIdentities()
 // 	txRelayerMock := newDummyTxRelayer(t)
 // 	txRelayerMock.On("Call", mock.Anything, mock.Anything, mock.Anything).
 // 		Return("2", error(nil)).
@@ -61,9 +60,9 @@ package polybft
 // 		signatures  bls.Signatures
 // 	)
 
-// 	validators.iterAcct(aliases, func(t *testValidator) {
+// 	validators.IterAcct(aliases, func(t *validator.TestValidator) {
 // 		bitmap.Set(idx)
-// 		signatures = append(signatures, t.mustSign(dummyMsg, bls.DomainCheckpointManager))
+// 		signatures = append(signatures, t.MustSign(dummyMsg, bls.DomainCheckpointManager))
 // 		idx++
 // 	})
 
@@ -98,7 +97,7 @@ package polybft
 // 	blockchainMock := new(blockchainMock)
 // 	blockchainMock.On("GetHeaderByNumber", mock.Anything).Return(headersMap.getHeader)
 
-// 	validatorAcc := validators.getValidator("A")
+// 	validatorAcc := validators.GetValidator("A")
 // 	c := &checkpointManager{
 // 		key:              wallet.NewEcdsaSigner(validatorAcc.Key()),
 // 		rootChainRelayer: txRelayerMock,
@@ -124,8 +123,8 @@ package polybft
 
 // 	const epochSize = uint64(10)
 
-// 	currentValidators := newTestValidatorsWithAliases(t, []string{"A", "B", "C", "D"})
-// 	nextValidators := newTestValidatorsWithAliases(t, []string{"E", "F", "G", "H"})
+// 	currentValidators := validator.NewTestValidatorsWithAliases(t, []string{"A", "B", "C", "D"})
+// 	nextValidators := validator.NewTestValidatorsWithAliases(t, []string{"E", "F", "G", "H"})
 // 	header := &types.Header{Number: 50}
 // 	checkpoint := &CheckpointData{
 // 		BlockRound:  1,
@@ -140,8 +139,8 @@ package polybft
 
 // 	var signatures bls.Signatures
 
-// 	currentValidators.iterAcct(nil, func(v *testValidator) {
-// 		signatures = append(signatures, v.mustSign(proposalHash, bls.DomainCheckpointManager))
+// 	currentValidators.IterAcct(nil, func(v *validator.TestValidator) {
+// 		signatures = append(signatures, v.MustSign(proposalHash, bls.DomainCheckpointManager))
 // 		bmp.Set(i)
 // 		i++
 // 	})
@@ -158,14 +157,14 @@ package polybft
 // 	header.ComputeHash()
 
 // 	backendMock := new(polybftBackendMock)
-// 	backendMock.On("GetValidators", mock.Anything, mock.Anything).Return(currentValidators.getPublicIdentities())
+// 	backendMock.On("GetValidators", mock.Anything, mock.Anything).Return(currentValidators.GetPublicIdentities())
 
 // 	c := &checkpointManager{
 // 		blockchain:       &blockchainMock{},
 // 		consensusBackend: backendMock,
 // 		logger:           hclog.NewNullLogger(),
 // 	}
-// 	checkpointDataEncoded, err := c.abiEncodeCheckpointBlock(header.Number, header.Hash, extra, nextValidators.getPublicIdentities())
+// 	checkpointDataEncoded, err := c.abiEncodeCheckpointBlock(header.Number, header.Hash, extra, nextValidators.GetPublicIdentities())
 // 	require.NoError(t, err)
 
 // 	submit := &contractsapi.SubmitCheckpointManagerFn{}
@@ -488,7 +487,7 @@ package polybft
 // 	return &dummyTxRelayer{test: t}
 // }
 
-// func (d dummyTxRelayer) Call(from ethgo.Address, to ethgo.Address, input []byte) (string, error) {
+// func (d *dummyTxRelayer) Call(from ethgo.Address, to ethgo.Address, input []byte) (string, error) {
 // 	args := d.Called(from, to, input)
 
 // 	return args.String(0), args.Error(1)

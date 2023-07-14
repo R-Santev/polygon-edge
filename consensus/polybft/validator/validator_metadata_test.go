@@ -1,6 +1,7 @@
-package polybft
+package validator
 
 import (
+	"crypto/rand"
 	"math/big"
 	"testing"
 
@@ -11,10 +12,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// generateRandomBytes generates byte array with random data of 32 bytes length
+func generateRandomBytes(t *testing.T) (result []byte) {
+	t.Helper()
+
+	result = make([]byte, types.HashLength)
+	_, err := rand.Reader.Read(result)
+	require.NoError(t, err, "Cannot generate random byte array content.")
+
+	return
+}
+
 func TestValidatorMetadata_Equals(t *testing.T) {
 	t.Parallel()
 
-	v := newTestValidator(t, "A", 10)
+	v := NewTestValidator(t, "A", 10)
 	validatorAcc := v.ValidatorMetadata()
 	// proper validator metadata instance doesn't equal to nil
 	require.False(t, validatorAcc.Equals(nil))
@@ -89,7 +101,7 @@ func TestValidatorMetadata_CalculateVPower(t *testing.T) {
 func TestValidatorMetadata_EqualAddressAndBlsKey(t *testing.T) {
 	t.Parallel()
 
-	v := newTestValidator(t, "A", 10)
+	v := NewTestValidator(t, "A", 10)
 	validatorAcc := v.ValidatorMetadata()
 	// proper validator metadata instance doesn't equal to nil
 	require.False(t, validatorAcc.EqualAddressAndBlsKey(nil))
@@ -142,7 +154,7 @@ func TestAccountSet_IndexContainsAddressesAndContainsNodeId(t *testing.T) {
 	const count = 10
 
 	dummy := types.Address{2, 3, 4}
-	validators := newTestValidators(t, count).getPublicIdentities()
+	validators := NewTestValidators(t, count).GetPublicIdentities()
 	addresses := [count]types.Address{}
 
 	for i, validator := range validators {
@@ -255,12 +267,12 @@ func TestAccountSet_ApplyDelta(t *testing.T) {
 
 			snapshot := AccountSet{}
 			// Add a couple of validators to the snapshot => validators are present in the snapshot after applying such delta
-			vals := newTestValidatorsWithAliases(t, []string{"A", "B", "C", "D", "E", "F"})
+			vals := NewTestValidatorsWithAliases(t, []string{"A", "B", "C", "D", "E", "F"})
 
 			for _, step := range cc.steps {
 				addedValidators := AccountSet{}
 				if step.added != nil {
-					addedValidators = vals.getPublicIdentities(step.added...)
+					addedValidators = vals.GetPublicIdentities(step.added...)
 				}
 				delta := &ValidatorSetDelta{
 					Added:   addedValidators,
@@ -271,7 +283,7 @@ func TestAccountSet_ApplyDelta(t *testing.T) {
 				}
 
 				// update voting powers
-				delta.Updated = vals.updateVotingPowers(step.updated)
+				delta.Updated = vals.UpdateVotingPowers(step.updated)
 
 				// apply delta
 				var err error
@@ -287,7 +299,7 @@ func TestAccountSet_ApplyDelta(t *testing.T) {
 				// validate validator set
 				require.Equal(t, len(step.expected), snapshot.Len())
 				for validatorAlias, votingPower := range step.expected {
-					v := vals.getValidator(validatorAlias).ValidatorMetadata()
+					v := vals.GetValidator(validatorAlias).ValidatorMetadata()
 					require.True(t, snapshot.ContainsAddress(v.Address), "validator '%s' not found in snapshot", validatorAlias)
 					require.Equal(t, new(big.Int).SetUint64(votingPower), v.VotingPower)
 				}
@@ -299,8 +311,8 @@ func TestAccountSet_ApplyDelta(t *testing.T) {
 func TestAccountSet_ApplyEmptyDelta(t *testing.T) {
 	t.Parallel()
 
-	v := newTestValidatorsWithAliases(t, []string{"A", "B", "C", "D", "E", "F"})
-	validatorAccs := v.getPublicIdentities()
+	v := NewTestValidatorsWithAliases(t, []string{"A", "B", "C", "D", "E", "F"})
+	validatorAccs := v.GetPublicIdentities()
 	validators, err := validatorAccs.ApplyDelta(nil)
 	require.NoError(t, err)
 	require.Equal(t, validatorAccs, validators)
@@ -312,8 +324,8 @@ func TestAccountSet_Hash(t *testing.T) {
 	t.Run("Hash non-empty account set", func(t *testing.T) {
 		t.Parallel()
 
-		v := newTestValidatorsWithAliases(t, []string{"A", "B", "C", "D", "E", "F"})
-		hash, err := v.getPublicIdentities().Hash()
+		v := NewTestValidatorsWithAliases(t, []string{"A", "B", "C", "D", "E", "F"})
+		hash, err := v.GetPublicIdentities().Hash()
 		require.NoError(t, err)
 		require.NotEqual(t, types.ZeroHash, hash)
 	})

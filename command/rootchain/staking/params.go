@@ -9,14 +9,16 @@ package staking
 // 	sidechainHelper "github.com/0xPolygon/polygon-edge/command/sidechain"
 // )
 
+// var supernetIDFlag = "supernet-id"
+
 // type stakeParams struct {
-// 	accountDir          string
-// 	accountConfig       string
-// 	stakeManagerAddr    string
-// 	nativeRootTokenAddr string
-// 	jsonRPC             string
-// 	chainID             uint64
-// 	amount              string
+// 	accountDir       string
+// 	accountConfig    string
+// 	stakeManagerAddr string
+// 	stakeTokenAddr   string
+// 	jsonRPC          string
+// 	supernetID       int64
+// 	amount           string
 
 // 	amountValue *big.Int
 // }

@@ -1,7 +1,6 @@
 package polybft
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 
@@ -76,7 +75,7 @@ func NewSystemState(valSetAddr types.Address, stateRcvAddr types.Address, provid
 	return s
 }
 
-// H_MODIFY: Get validator stake from childValidatorSet contract using the getValidatorTotalStake function
+// Hydra modification: Get validator stake from childValidatorSet contract using the getValidatorTotalStake function
 // TODO: getValidatorTotalStake is a temporary solution and must be removed
 // (check the func in the contract for more info)
 // GetStakeOnValidatorSet retrieves stake of given validator on ValidatorSet contract
@@ -112,7 +111,6 @@ func (s *SystemStateImpl) GetEpoch() (uint64, error) {
 	}
 
 	epochNumber, isOk := rawResult["0"].(*big.Int)
-
 	if !isOk {
 		return 0, fmt.Errorf("failed to decode epoch")
 	}
@@ -233,24 +231,4 @@ func (s *SystemStateImpl) GetNextCommittedIndex() (uint64, error) {
 	}
 
 	return nextCommittedIndex.Uint64() + 1, nil
-}
-
-func buildLogsFromReceipts(entry []*types.Receipt, header *types.Header) []*types.Log {
-	var logs []*types.Log
-
-	for _, taskReceipt := range entry {
-		for _, taskLog := range taskReceipt.Logs {
-			log := new(types.Log)
-			*log = *taskLog
-
-			data := map[string]interface{}{
-				"Hash":   header.Hash,
-				"Number": header.Number,
-			}
-			log.Data, _ = json.Marshal(&data)
-			logs = append(logs, log)
-		}
-	}
-
-	return logs
 }

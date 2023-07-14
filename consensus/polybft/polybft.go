@@ -2,7 +2,9 @@
 package polybft
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -10,6 +12,7 @@ import (
 	"github.com/0xPolygon/polygon-edge/chain"
 	"github.com/0xPolygon/polygon-edge/consensus"
 	bls "github.com/0xPolygon/polygon-edge/consensus/polybft/signer"
+	"github.com/0xPolygon/polygon-edge/consensus/polybft/validator"
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/wallet"
 	"github.com/0xPolygon/polygon-edge/contracts"
 	"github.com/0xPolygon/polygon-edge/helper/common"
@@ -27,10 +30,14 @@ const (
 	bridgeProto  = "/bridge/0.2"
 )
 
+var (
+	errMissingBridgeConfig = errors.New("invalid genesis configuration, missing bridge configuration")
+)
+
 // polybftBackend is an interface defining polybft methods needed by fsm and sync tracker
 type polybftBackend interface {
 	// GetValidators retrieves validator set for the given block
-	GetValidators(blockNumber uint64, parents []*types.Header) (AccountSet, error)
+	GetValidators(blockNumber uint64, parents []*types.Header) (validator.AccountSet, error)
 }
 
 // Factory is the factory function to create a discovery consensus
@@ -117,6 +124,11 @@ func GenesisPostHookFactory(config *chain.Chain, engineName string) func(txn *st
 			return err
 		}
 
+		bridgeCfg := polyBFTConfig.Bridge
+		if bridgeCfg == nil {
+			return errMissingBridgeConfig
+		}
+
 		// initialize ValidatorSet SC
 		input, err := getInitChildValidatorSetInput(polyBFTConfig)
 		if err != nil {
@@ -124,7 +136,7 @@ func GenesisPostHookFactory(config *chain.Chain, engineName string) func(txn *st
 		}
 
 		// H_MODIFY: Use ChildValidatorSet instead of the new ValidatorSet
-		if err = initContract(contracts.SystemCaller,
+		if err = callContract(contracts.SystemCaller,
 			contracts.ValidatorSetContract, input, "ChildValidatorSet", transition); err != nil {
 			return err
 		}
@@ -140,89 +152,172 @@ func GenesisPostHookFactory(config *chain.Chain, engineName string) func(txn *st
 		// 	return err
 		// }
 
-		// if err = initContract(contracts.SystemCaller,
+		// if err = callContract(contracts.SystemCaller,
 		// 	contracts.RewardPoolContract, input, "RewardPool", transition); err != nil {
 		// 	return err
 		// }
 
-		// H_MODIFY: Remove unused contracts
-		// initialize Predicate SCs
-		// if polyBFTConfig.BridgeAllowListAdmin != types.ZeroAddress ||
-		// 	polyBFTConfig.BridgeBlockListAdmin != types.ZeroAddress {
-		// input, err = getInitChildERC20PredicateAccessListInput(polyBFTConfig)
-		// if err != nil {
-		// 	return err
+		// check if there are Bridge Allow List Admins and Bridge Block List Admins
+		// and if there are, get the first address as the Admin
+		// var bridgeAllowListAdmin types.Address
+		// if config.Params.BridgeAllowList != nil && len(config.Params.BridgeAllowList.AdminAddresses) > 0 {
+		// 	bridgeAllowListAdmin = config.Params.BridgeAllowList.AdminAddresses[0]
 		// }
 
-		// 	if err = initContract(contracts.SystemCaller, contracts.ChildERC20PredicateContract, input,
+		// bridgeBlockListAdmin := types.ZeroAddress
+		// if config.Params.BridgeBlockList != nil && len(config.Params.BridgeBlockList.AdminAddresses) > 0 {
+		// 	bridgeBlockListAdmin = config.Params.BridgeBlockList.AdminAddresses[0]
+		// }
+
+		// initialize Predicate SCs
+		// if bridgeAllowListAdmin != types.ZeroAddress || bridgeBlockListAdmin != types.ZeroAddress {
+		// 	// The owner of the contract will be the allow list admin or the block list admin, if any of them is set.
+		// 	owner := contracts.SystemCaller
+		// 	if bridgeAllowListAdmin != types.ZeroAddress {
+		// 		owner = bridgeAllowListAdmin
+		// 	} else if bridgeBlockListAdmin != types.ZeroAddress {
+		// 		owner = bridgeBlockListAdmin
+		// 	}
+
+		// 	// initialize ChildERC20PredicateAccessList SC
+		// 	input, err = getInitERC20PredicateACLInput(polyBFTConfig.Bridge, owner, false)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+
+		// 	if err = callContract(contracts.SystemCaller, contracts.ChildERC20PredicateContract, input,
 		// 		"ChildERC20PredicateAccessList", transition); err != nil {
 		// 		return err
 		// 	}
 
-		// 	input, err = getInitChildERC721PredicateAccessListInput(polyBFTConfig)
+		// 	// initialize ChildERC721PredicateAccessList SC
+		// 	input, err = getInitERC721PredicateACLInput(polyBFTConfig.Bridge, owner, false)
 		// 	if err != nil {
 		// 		return err
 		// 	}
 
-		// 	if err = initContract(contracts.SystemCaller, contracts.ChildERC721PredicateContract, input,
+		// 	if err = callContract(contracts.SystemCaller, contracts.ChildERC721PredicateContract, input,
 		// 		"ChildERC721PredicateAccessList", transition); err != nil {
 		// 		return err
 		// 	}
 
-		// 	input, err = getInitChildERC1155PredicateAccessListInput(polyBFTConfig)
+		// 	// initialize ChildERC1155PredicateAccessList SC
+		// 	input, err = getInitERC1155PredicateACLInput(polyBFTConfig.Bridge, owner, false)
 		// 	if err != nil {
 		// 		return err
 		// 	}
 
-		// 	if err = initContract(contracts.SystemCaller, contracts.ChildERC1155PredicateContract, input,
+		// 	if err = callContract(contracts.SystemCaller, contracts.ChildERC1155PredicateContract, input,
 		// 		"ChildERC1155PredicateAccessList", transition); err != nil {
 		// 		return err
 		// 	}
-		// } else {
-		// 	input, err = getInitChildERC20PredicateInput(polyBFTConfig.Bridge)
+
+		// 	// initialize RootMintableERC20PredicateAccessList SC
+		// 	input, err = getInitERC20PredicateACLInput(polyBFTConfig.Bridge, owner, true)
 		// 	if err != nil {
 		// 		return err
 		// 	}
 
-		// 	if err = initContract(contracts.SystemCaller, contracts.ChildERC20PredicateContract, input,
+		// 	if err = callContract(contracts.SystemCaller, contracts.RootMintableERC20PredicateContract, input,
+		// 		"RootMintableERC20PredicateAccessList", transition); err != nil {
+		// 		return err
+		// 	}
+
+		// 	// initialize RootMintableERC721PredicateAccessList SC
+		// 	input, err = getInitERC721PredicateACLInput(polyBFTConfig.Bridge, owner, true)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+
+		// 	if err = callContract(contracts.SystemCaller, contracts.RootMintableERC721PredicateContract, input,
+		// 		"RootMintableERC721PredicateAccessList", transition); err != nil {
+		// 		return err
+		// 	}
+
+		// 	// initialize RootMintableERC1155PredicateAccessList SC
+		// 	input, err = getInitERC1155PredicateACLInput(polyBFTConfig.Bridge, owner, true)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+
+		// 	if err = callContract(contracts.SystemCaller, contracts.RootMintableERC1155PredicateContract, input,
+		// 		"RootMintableERC1155PredicateAccessList", transition); err != nil {
+		// 		return err
+		// 	}
+		// } else {
+		// 	// initialize ChildERC20Predicate SC
+		// 	input, err = getInitERC20PredicateInput(bridgeCfg, false)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+
+		// 	if err = callContract(contracts.SystemCaller, contracts.ChildERC20PredicateContract, input,
 		// 		"ChildERC20Predicate", transition); err != nil {
 		// 		return err
 		// 	}
 
 		// 	// initialize ChildERC721Predicate SC
-		// 	input, err = getInitChildERC721PredicateInput(polyBFTConfig.Bridge)
+		// 	input, err = getInitERC721PredicateInput(bridgeCfg, false)
 		// 	if err != nil {
 		// 		return err
 		// 	}
 
-		// 	if err = initContract(contracts.SystemCaller, contracts.ChildERC721PredicateContract, input,
+		// 	if err = callContract(contracts.SystemCaller, contracts.ChildERC721PredicateContract, input,
 		// 		"ChildERC721Predicate", transition); err != nil {
 		// 		return err
 		// 	}
 
 		// 	// initialize ChildERC1155Predicate SC
-		// 	input, err = getInitChildERC1155PredicateInput(polyBFTConfig.Bridge)
+		// 	input, err = getInitERC1155PredicateInput(bridgeCfg, false)
 		// 	if err != nil {
 		// 		return err
 		// 	}
 
-		// if err = initContract(contracts.SystemCaller, contracts.ChildERC1155PredicateContract, input,
-		// 	"ChildERC1155Predicate", transition); err != nil {
-		// 	return err
-		// }
+		// 	if err = callContract(contracts.SystemCaller, contracts.ChildERC1155PredicateContract, input,
+		// 		"ChildERC1155Predicate", transition); err != nil {
+		// 		return err
+		// 	}
+
+		// 	// initialize RootMintableERC20Predicate SC
+		// 	input, err = getInitERC20PredicateInput(bridgeCfg, true)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+
+		// 	if err = callContract(contracts.SystemCaller, contracts.RootMintableERC20PredicateContract, input,
+		// 		"RootMintableERC20Predicate", transition); err != nil {
+		// 		return err
+		// 	}
+
+		// 	// initialize RootMintableERC721Predicate SC
+		// 	input, err = getInitERC721PredicateInput(bridgeCfg, true)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+
+		// 	if err = callContract(contracts.SystemCaller, contracts.RootMintableERC721PredicateContract, input,
+		// 		"RootMintableERC721Predicate", transition); err != nil {
+		// 		return err
+		// 	}
+
+		// 	// initialize RootMintableERC1155Predicate SC
+		// 	input, err = getInitERC1155PredicateInput(bridgeCfg, true)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+
+		// 	if err = callContract(contracts.SystemCaller, contracts.RootMintableERC1155PredicateContract, input,
+		// 		"RootMintableERC1155Predicate", transition); err != nil {
+		// 		return err
+		// 	}
 		// }
 
-		// rootNativeERC20Token := types.ZeroAddress
-		// if polyBFTConfig.Bridge != nil {
-		// 	rootNativeERC20Token = polyBFTConfig.Bridge.RootNativeERC20Addr
-		// }
-
-		// if polyBFTConfig.MintableNativeToken {
+		// if polyBFTConfig.NativeTokenConfig.IsMintable {
 		// 	// initialize NativeERC20Mintable SC
 		// 	params := &contractsapi.InitializeNativeERC20MintableFn{
 		// 		Predicate_: contracts.ChildERC20PredicateContract,
 		// 		Owner_:     polyBFTConfig.Governance,
-		// 		RootToken_: rootNativeERC20Token,
+		// 		RootToken_: polyBFTConfig.Bridge.RootNativeERC20Addr,
 		// 		Name_:      polyBFTConfig.NativeTokenConfig.Name,
 		// 		Symbol_:    polyBFTConfig.NativeTokenConfig.Symbol,
 		// 		Decimals_:  polyBFTConfig.NativeTokenConfig.Decimals,
@@ -233,7 +328,7 @@ func GenesisPostHookFactory(config *chain.Chain, engineName string) func(txn *st
 		// 		return err
 		// 	}
 
-		// 	if err = initContract(contracts.SystemCaller,
+		// 	if err = callContract(contracts.SystemCaller,
 		// 		contracts.NativeERC20TokenContract, input, "NativeERC20Mintable", transition); err != nil {
 		// 		return err
 		// 	}
@@ -243,7 +338,7 @@ func GenesisPostHookFactory(config *chain.Chain, engineName string) func(txn *st
 		// 		Name_:      polyBFTConfig.NativeTokenConfig.Name,
 		// 		Symbol_:    polyBFTConfig.NativeTokenConfig.Symbol,
 		// 		Decimals_:  polyBFTConfig.NativeTokenConfig.Decimals,
-		// 		RootToken_: rootNativeERC20Token,
+		// 		RootToken_: polyBFTConfig.Bridge.RootNativeERC20Addr,
 		// 		Predicate_: contracts.ChildERC20PredicateContract,
 		// 	}
 
@@ -252,7 +347,7 @@ func GenesisPostHookFactory(config *chain.Chain, engineName string) func(txn *st
 		// 		return err
 		// 	}
 
-		// 	if err = initContract(contracts.SystemCaller,
+		// 	if err = callContract(contracts.SystemCaller,
 		// 		contracts.NativeERC20TokenContract, input, "NativeERC20", transition); err != nil {
 		// 		return err
 		// 	}
@@ -260,6 +355,11 @@ func GenesisPostHookFactory(config *chain.Chain, engineName string) func(txn *st
 
 		return nil
 	}
+}
+
+func ForkManagerFactory(forks *chain.Forks) error {
+	// place fork manager handler registration here
+	return nil
 }
 
 // Initialize initializes the consensus (e.g. setup data)
@@ -335,18 +435,21 @@ func (p *Polybft) Start() error {
 		return fmt.Errorf("failed to start syncer. Error: %w", err)
 	}
 
-	// start syncing
-	go func() {
+	// sync concurrently, retrying indefinitely
+	go common.RetryForever(context.Background(), time.Second, func(context.Context) error {
 		blockHandler := func(b *types.FullBlock) bool {
 			p.runtime.OnBlockInserted(b)
 
 			return false
 		}
-
 		if err := p.syncer.Sync(blockHandler); err != nil {
 			p.logger.Error("blocks synchronization failed", "error", err)
+
+			return err
 		}
-	}()
+
+		return nil
+	})
 
 	// start consensus runtime
 	if err := p.startRuntime(); err != nil {
@@ -530,12 +633,12 @@ func (p *Polybft) VerifyHeader(header *types.Header) error {
 		)
 	}
 
-	return p.verifyHeaderImpl(parent, header, nil)
+	return p.verifyHeaderImpl(parent, header, p.consensusConfig.BlockTimeDrift, nil)
 }
 
-func (p *Polybft) verifyHeaderImpl(parent, header *types.Header, parents []*types.Header) error {
+func (p *Polybft) verifyHeaderImpl(parent, header *types.Header, blockTimeDrift uint64, parents []*types.Header) error {
 	// validate header fields
-	if err := validateHeaderFields(parent, header); err != nil {
+	if err := validateHeaderFields(parent, header, blockTimeDrift); err != nil {
 		return fmt.Errorf("failed to validate header for block %d. error = %w", header.Number, err)
 	}
 
@@ -550,10 +653,10 @@ func (p *Polybft) verifyHeaderImpl(parent, header *types.Header, parents []*type
 		header, parent, parents, p.blockchain.GetChainID(), p, bls.DomainCheckpointManager, p.logger)
 }
 
-// H: data is not taken from smart contract but is computed
+// Hydra notes: data is not taken from smart contract but is computed
 // based on validatorSetDelta extra field in the last block of an epoch
 // Then it is saved in the db (state_store_epoch)
-func (p *Polybft) GetValidators(blockNumber uint64, parents []*types.Header) (AccountSet, error) {
+func (p *Polybft) GetValidators(blockNumber uint64, parents []*types.Header) (validator.AccountSet, error) {
 	return p.validatorsCache.GetSnapshot(blockNumber, parents)
 }
 

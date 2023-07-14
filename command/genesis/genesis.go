@@ -45,7 +45,7 @@ func setFlags(cmd *cobra.Command) {
 		&params.chainID,
 		chainIDFlag,
 		command.DefaultChainID,
-		"the ID of the chain",
+		"the ID of the chain (only used for IBFT consensus)",
 	)
 
 	cmd.Flags().StringVar(
@@ -219,18 +219,11 @@ func setFlags(cmd *cobra.Command) {
 			"trie root from the corresponding triedb",
 		)
 
-		cmd.Flags().BoolVar(
-			&params.mintableNativeToken,
-			mintableTokenFlag,
-			false,
-			"flag indicate whether mintable or non-mintable native token is deployed",
-		)
-
 		cmd.Flags().StringVar(
 			&params.nativeTokenConfigRaw,
 			nativeTokenConfigFlag,
 			"",
-			"configuration of native token in format <name:symbol:decimals count>",
+			"configuration of native token in format <name:symbol:decimals count:mintable flag>",
 		)
 
 		cmd.Flags().StringVar(
@@ -245,6 +238,13 @@ func setFlags(cmd *cobra.Command) {
 			rewardWalletFlag,
 			"",
 			"configuration of reward wallet in format <address:amount>",
+		)
+
+		cmd.Flags().Uint64Var(
+			&params.blockTimeDrift,
+			blockTimeDriftFlag,
+			defaultBlockTimeDrift,
+			"configuration for block time drift value (in seconds)",
 		)
 	}
 

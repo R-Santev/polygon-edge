@@ -76,7 +76,6 @@ type TestClusterConfig struct {
 	Premine              []string // address[:amount]
 	PremineValidators    []string // address[:amount]
 	StakeAmounts         []string // address[:amount]
-	MintableNativeToken  bool
 	WithoutBridge        bool
 	BootnodeCount        int
 	NonValidatorCount    int
@@ -197,12 +196,6 @@ func WithPremine(addresses ...types.Address) ClusterOption {
 		for _, a := range addresses {
 			h.Premine = append(h.Premine, a.String())
 		}
-	}
-}
-
-func WithMintableNativeToken(mintableToken bool) ClusterOption {
-	return func(h *TestClusterConfig) {
-		h.MintableNativeToken = mintableToken
 	}
 }
 
@@ -478,10 +471,6 @@ func NewTestCluster(t *testing.T, validatorsCount int, opts ...ClusterOption) *T
 			}
 		}
 
-		if cluster.Config.MintableNativeToken {
-			args = append(args, "--mintable-native-token")
-		}
-
 		if len(cluster.Config.BurnContracts) != 0 {
 			for block, addr := range cluster.Config.BurnContracts {
 				args = append(args, "--burn-contract", fmt.Sprintf("%d:%s", block, addr))
@@ -581,11 +570,15 @@ func NewTestCluster(t *testing.T, validatorsCount int, opts ...ClusterOption) *T
 		cluster.Bridge, err = NewTestBridge(t, cluster.Config)
 		require.NoError(t, err)
 
-		// deploy rootchain contracts
-		err := cluster.Bridge.deployRootchainContracts(genesisPath)
+		// deploy stake manager contract
+		err := cluster.Bridge.deployStakeManager(genesisPath)
 		require.NoError(t, err)
 
-		polybftConfig, chainID, err := polybft.LoadPolyBFTConfig(genesisPath)
+		// deploy rootchain contracts
+		err = cluster.Bridge.deployRootchainContracts(genesisPath)
+		require.NoError(t, err)
+
+		polybftConfig, err := polybft.LoadPolyBFTConfig(genesisPath)
 		require.NoError(t, err)
 
 		// fund validators on the rootchain
@@ -601,7 +594,7 @@ func NewTestCluster(t *testing.T, validatorsCount int, opts ...ClusterOption) *T
 		require.NoError(t, err)
 
 		// do initial staking for genesis validators on the rootchain
-		err = cluster.Bridge.initialStakingOfGenesisValidators(polybftConfig, chainID)
+		err = cluster.Bridge.initialStakingOfGenesisValidators(polybftConfig)
 		require.NoError(t, err)
 
 		// finalize genesis validators on the rootchain

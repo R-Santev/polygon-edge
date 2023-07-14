@@ -64,19 +64,19 @@ package staking
 // 		"amount to stake",
 // 	)
 
-// 	cmd.Flags().Uint64Var(
-// 		&params.chainID,
-// 		polybftsecrets.ChainIDFlag,
-// 		0,
-// 		polybftsecrets.ChainIDFlagDesc,
-// 	)
+// cmd.Flags().Int64Var(
+// 	&params.supernetID,
+// 	supernetIDFlag,
+// 	0,
+// 	"ID of supernet provided by stake manager on supernet registration",
+// )
 
-// 	cmd.Flags().StringVar(
-// 		&params.nativeRootTokenAddr,
-// 		rootHelper.NativeRootTokenFlag,
-// 		"",
-// 		rootHelper.NativeRootTokenFlagDesc,
-// 	)
+// cmd.Flags().StringVar(
+// 	&params.stakeTokenAddr,
+// 	rootHelper.StakeTokenFlag,
+// 	"",
+// 	rootHelper.StakeTokenFlagDesc,
+// )
 
 // 	cmd.MarkFlagsMutuallyExclusive(polybftsecrets.AccountDirFlag, polybftsecrets.AccountConfigFlag)
 // }
@@ -107,11 +107,11 @@ package staking
 // 		return err
 // 	}
 
-// 	approveTxn, err := rootHelper.CreateApproveERC20Txn(params.amountValue,
-// 		types.StringToAddress(params.stakeManagerAddr), types.StringToAddress(params.nativeRootTokenAddr))
-// 	if err != nil {
-// 		return err
-// 	}
+// approveTxn, err := rootHelper.CreateApproveERC20Txn(params.amountValue,
+// 	types.StringToAddress(params.stakeManagerAddr), types.StringToAddress(params.stakeTokenAddr))
+// if err != nil {
+// 	return err
+// }
 
 // 	receipt, err := txRelayer.SendTransaction(approveTxn, validatorAccount.Ecdsa)
 // 	if err != nil {
@@ -122,10 +122,10 @@ package staking
 // 		return fmt.Errorf("approve transaction failed on block %d", receipt.BlockNumber)
 // 	}
 
-// 	stakeFn := contractsapi.StakeForStakeManagerFn{
-// 		ID:     new(big.Int).SetUint64(params.chainID),
-// 		Amount: params.amountValue,
-// 	}
+// stakeFn := contractsapi.StakeForStakeManagerFn{
+// 	ID:     new(big.Int).SetInt64(params.supernetID),
+// 	Amount: params.amountValue,
+// }
 
 // 	encoded, err := stakeFn.EncodeAbi()
 // 	if err != nil {
