@@ -118,7 +118,7 @@ type block struct {
 	Hash            types.Hash          `json:"hash"`
 	Transactions    []transactionOrHash `json:"transactions"`
 	Uncles          []types.Hash        `json:"uncles"`
-	BaseFee         argUint64           `json:"baseFee,omitempty"`
+	BaseFee         argUint64           `json:"baseFeePerGas,omitempty"`
 }
 
 func (b *block) Copy() *block {
@@ -343,4 +343,38 @@ type progression struct {
 	StartingBlock argUint64 `json:"startingBlock"`
 	CurrentBlock  argUint64 `json:"currentBlock"`
 	HighestBlock  argUint64 `json:"highestBlock"`
+}
+
+type feeHistoryResult struct {
+	OldestBlock   argUint64
+	BaseFeePerGas []argUint64
+	GasUsedRatio  []argUint64
+	Reward        [][]argUint64
+}
+
+func convertToArgUint64Slice(slice []uint64) []argUint64 {
+	argSlice := make([]argUint64, len(slice))
+	for i, value := range slice {
+		argSlice[i] = argUint64(value)
+	}
+
+	return argSlice
+}
+
+func convertToArgUint64SliceSlice(slice [][]uint64) [][]argUint64 {
+	argSlice := make([][]argUint64, len(slice))
+	for i, value := range slice {
+		argSlice[i] = convertToArgUint64Slice(value)
+	}
+
+	return argSlice
+}
+
+func convertFloat64SliceToArgUint64Slice(slice []float64) []argUint64 {
+	argSlice := make([]argUint64, len(slice))
+	for i, value := range slice {
+		argSlice[i] = argUint64(value)
+	}
+
+	return argSlice
 }
