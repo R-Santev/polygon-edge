@@ -19,15 +19,14 @@ const (
 	contractCallGasLimit = 100_000_000
 )
 
-// H_MODIFY: Use ChildValidatorSet instead of the new ValidatorSet
-// getInitChildValidatorSetInput builds input parameters for ValidatorSet SC initialization
-func getInitChildValidatorSetInput(polyBFTConfig PolyBFTConfig) ([]byte, error) {
+// initValidatorSet initializes ValidatorSet SC
+func initValidatorSet(polyBFTConfig PolyBFTConfig, transition *state.Transition) error {
 	initialValidators := make([]*contractsapi.ValidatorInit, len(polyBFTConfig.InitialValidatorSet))
 
 	for i, validator := range polyBFTConfig.InitialValidatorSet {
 		validatorData, err := validator.ToValidatorInitAPIBinding()
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		initialValidators[i] = validatorData
@@ -45,11 +44,17 @@ func getInitChildValidatorSetInput(polyBFTConfig PolyBFTConfig) ([]byte, error) 
 		Validators: initialValidators,
 	}
 
-	return initFn.EncodeAbi()
+	input, err := initFn.EncodeAbi()
+	if err != nil {
+		return fmt.Errorf("ValidatorSet.initialize params encoding failed: %w", err)
+	}
+
+	return callContract(contracts.SystemCaller,
+		contracts.ValidatorSetContract, input, "ValidatorSet.initialize", transition)
 }
 
-// getInitRewardPoolInput builds input parameters for RewardPool SC initialization
-// func getInitRewardPoolInput(polybftConfig PolyBFTConfig) ([]byte, error) {
+// // initRewardPool initializes RewardPool SC
+// func initRewardPool(polybftConfig PolyBFTConfig, transition *state.Transition) error {
 // 	initFn := &contractsapi.InitializeRewardPoolFn{
 // 		NewRewardToken:  polybftConfig.RewardConfig.TokenAddress,
 // 		NewRewardWallet: polybftConfig.RewardConfig.WalletAddress,
@@ -57,10 +62,16 @@ func getInitChildValidatorSetInput(polyBFTConfig PolyBFTConfig) ([]byte, error) 
 // 		NewBaseReward:   new(big.Int).SetUint64(polybftConfig.EpochReward),
 // 	}
 
-// 	return initFn.EncodeAbi()
+// 	input, err := initFn.EncodeAbi()
+// 	if err != nil {
+// 		return fmt.Errorf("RewardPool.initialize params encoding failed: %w", err)
+// 	}
+
+// 	return callContract(contracts.SystemCaller,
+// 		contracts.RewardPoolContract, input, "RewardPool.initialize", transition)
 // }
 
-// getInitERC20PredicateInput builds initialization input parameters for child chain ERC20Predicate SC
+// // getInitERC20PredicateInput builds initialization input parameters for child chain ERC20Predicate SC
 // func getInitERC20PredicateInput(config *BridgeConfig, childChainMintable bool) ([]byte, error) {
 // 	var params contractsapi.StateTransactionInput
 // 	if childChainMintable {
@@ -68,7 +79,7 @@ func getInitChildValidatorSetInput(polyBFTConfig PolyBFTConfig) ([]byte, error) 
 // 			NewL2StateSender:       contracts.L2StateSenderContract,
 // 			NewStateReceiver:       contracts.StateReceiverContract,
 // 			NewChildERC20Predicate: config.ChildMintableERC20PredicateAddr,
-// 			NewChildTokenTemplate:  contracts.ChildERC20Contract,
+// 			NewChildTokenTemplate:  config.ChildERC20Addr,
 // 		}
 // 	} else {
 // 		params = &contractsapi.InitializeChildERC20PredicateFn{
@@ -83,7 +94,7 @@ func getInitChildValidatorSetInput(polyBFTConfig PolyBFTConfig) ([]byte, error) 
 // 	return params.EncodeAbi()
 // }
 
-// getInitERC20PredicateACLInput builds initialization input parameters for child chain ERC20PredicateAccessList SC
+// // getInitERC20PredicateACLInput builds initialization input parameters for child chain ERC20PredicateAccessList SC
 // func getInitERC20PredicateACLInput(config *BridgeConfig, owner types.Address,
 // 	childChainMintable bool) ([]byte, error) {
 // 	var params contractsapi.StateTransactionInput
@@ -92,7 +103,7 @@ func getInitChildValidatorSetInput(polyBFTConfig PolyBFTConfig) ([]byte, error) 
 // 			NewL2StateSender:       contracts.L2StateSenderContract,
 // 			NewStateReceiver:       contracts.StateReceiverContract,
 // 			NewChildERC20Predicate: config.ChildMintableERC20PredicateAddr,
-// 			NewChildTokenTemplate:  contracts.ChildERC20Contract,
+// 			NewChildTokenTemplate:  config.ChildERC20Addr,
 // 			NewUseAllowList:        owner != contracts.SystemCaller,
 // 			NewUseBlockList:        owner != contracts.SystemCaller,
 // 			NewOwner:               owner,
@@ -121,7 +132,7 @@ func getInitChildValidatorSetInput(polyBFTConfig PolyBFTConfig) ([]byte, error) 
 // 			NewL2StateSender:        contracts.L2StateSenderContract,
 // 			NewStateReceiver:        contracts.StateReceiverContract,
 // 			NewChildERC721Predicate: config.ChildMintableERC721PredicateAddr,
-// 			NewChildTokenTemplate:   contracts.ChildERC20Contract,
+// 			NewChildTokenTemplate:   config.ChildERC721Addr,
 // 		}
 // 	} else {
 // 		params = &contractsapi.InitializeChildERC721PredicateFn{
@@ -145,7 +156,7 @@ func getInitChildValidatorSetInput(polyBFTConfig PolyBFTConfig) ([]byte, error) 
 // 			NewL2StateSender:        contracts.L2StateSenderContract,
 // 			NewStateReceiver:        contracts.StateReceiverContract,
 // 			NewChildERC721Predicate: config.ChildMintableERC721PredicateAddr,
-// 			NewChildTokenTemplate:   contracts.ChildERC721Contract,
+// 			NewChildTokenTemplate:   config.ChildERC721Addr,
 // 			NewUseAllowList:         owner != contracts.SystemCaller,
 // 			NewUseBlockList:         owner != contracts.SystemCaller,
 // 			NewOwner:                owner,
@@ -173,7 +184,7 @@ func getInitChildValidatorSetInput(polyBFTConfig PolyBFTConfig) ([]byte, error) 
 // 			NewL2StateSender:         contracts.L2StateSenderContract,
 // 			NewStateReceiver:         contracts.StateReceiverContract,
 // 			NewChildERC1155Predicate: config.ChildMintableERC1155PredicateAddr,
-// 			NewChildTokenTemplate:    contracts.ChildERC1155Contract,
+// 			NewChildTokenTemplate:    config.ChildERC1155Addr,
 // 		}
 // 	} else {
 // 		params = &contractsapi.InitializeChildERC1155PredicateFn{
@@ -197,7 +208,7 @@ func getInitChildValidatorSetInput(polyBFTConfig PolyBFTConfig) ([]byte, error) 
 // 			NewL2StateSender:         contracts.L2StateSenderContract,
 // 			NewStateReceiver:         contracts.StateReceiverContract,
 // 			NewChildERC1155Predicate: config.ChildMintableERC1155PredicateAddr,
-// 			NewChildTokenTemplate:    contracts.ChildERC1155Contract,
+// 			NewChildTokenTemplate:    config.ChildERC1155Addr,
 // 			NewUseAllowList:          owner != contracts.SystemCaller,
 // 			NewUseBlockList:          owner != contracts.SystemCaller,
 // 			NewOwner:                 owner,
@@ -217,24 +228,9 @@ func getInitChildValidatorSetInput(polyBFTConfig PolyBFTConfig) ([]byte, error) 
 // 	return params.EncodeAbi()
 // }
 
-// // mintRewardTokensToWalletAddress mints configured amount of reward tokens to reward wallet address
-// func mintRewardTokensToWalletAddress(polyBFTConfig *PolyBFTConfig, transition *state.Transition) error {
-// 	approveFn := &contractsapi.ApproveRootERC20Fn{
-// 		Spender: contracts.RewardPoolContract,
-// 		Amount:  polyBFTConfig.RewardConfig.WalletAmount,
-// 	}
-
-// 	input, err := approveFn.EncodeAbi()
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	if err = callContract(polyBFTConfig.RewardConfig.WalletAddress,
-// 		polyBFTConfig.RewardConfig.TokenAddress, input, "RewardToken", transition); err != nil {
-// 		return err
-// 	}
-
-// 	if polyBFTConfig.RewardConfig.TokenAddress == contracts.NativeERC20TokenContract {
+// mintRewardTokensToWallet mints configured amount of reward tokens to reward wallet address
+// func mintRewardTokensToWallet(polyBFTConfig PolyBFTConfig, transition *state.Transition) error {
+// 	if isNativeRewardToken(polyBFTConfig) {
 // 		// if reward token is a native erc20 token, we don't need to mint an amount of tokens
 // 		// for given wallet address to it since this is done in premine
 // 		return nil
@@ -245,14 +241,31 @@ func getInitChildValidatorSetInput(polyBFTConfig PolyBFTConfig) ([]byte, error) 
 // 		Amount: polyBFTConfig.RewardConfig.WalletAmount,
 // 	}
 
-// 	input, err = mintFn.EncodeAbi()
+// 	input, err := mintFn.EncodeAbi()
 // 	if err != nil {
-// 		return err
+// 		return fmt.Errorf("RewardToken.mint params encoding failed: %w", err)
 // 	}
 
 // 	return callContract(contracts.SystemCaller, polyBFTConfig.RewardConfig.TokenAddress, input,
-// 		"RewardToken", transition)
+// 		"RewardToken.mint", transition)
 // }
+
+// approveRewardPoolAsSpender approves reward pool contract as reward token spender
+// since reward pool distributes rewards.
+func approveRewardPoolAsSpender(polyBFTConfig PolyBFTConfig, transition *state.Transition) error {
+	approveFn := &contractsapi.ApproveRootERC20Fn{
+		Spender: contracts.RewardPoolContract,
+		Amount:  polyBFTConfig.RewardConfig.WalletAmount,
+	}
+
+	input, err := approveFn.EncodeAbi()
+	if err != nil {
+		return fmt.Errorf("RewardToken.approve params encoding failed: %w", err)
+	}
+
+	return callContract(polyBFTConfig.RewardConfig.WalletAddress,
+		polyBFTConfig.RewardConfig.TokenAddress, input, "RewardToken.approve", transition)
+}
 
 // callContract calls given smart contract function, encoded in input parameter
 func callContract(from, to types.Address, input []byte, contractName string, transition *state.Transition) error {
@@ -268,4 +281,9 @@ func callContract(from, to types.Address, input []byte, contractName string, tra
 	}
 
 	return nil
+}
+
+// isNativeRewardToken returns true in case a native token is used as a reward token as well
+func isNativeRewardToken(cfg PolyBFTConfig) bool {
+	return cfg.RewardConfig.TokenAddress == contracts.NativeERC20TokenContract
 }

@@ -150,10 +150,10 @@ func FuzzTestStakeManagerPostBlock(f *testing.F) {
 		stakeManager := newStakeManager(
 			hclog.NewNullLogger(),
 			state,
-			nil,
 			wallet.NewEcdsaSigner(validators.GetValidator("A").Key()),
 			types.StringToAddress("0x0001"),
 			5,
+			nil,
 		)
 
 		// insert initial full validator set
@@ -196,10 +196,10 @@ func FuzzTestStakeManagerUpdateValidatorSet(f *testing.F) {
 	stakeManager := newStakeManager(
 		hclog.NewNullLogger(),
 		state,
-		nil,
 		wallet.NewEcdsaSigner(validators.GetValidator("A").Key()),
 		types.StringToAddress("0x0001"),
 		10,
+		nil,
 	)
 
 	seeds := []updateValidatorSetF{

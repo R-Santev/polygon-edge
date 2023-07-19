@@ -178,7 +178,9 @@ func main() {
 		// 		"initialize",
 		// 		"depositTo",
 		// 	},
-		// 	[]string{},
+		// 	[]string{
+		// 		"TokenMapped",
+		// 	},
 		// },
 		// {
 		// 	"ChildMintableERC20Predicate",
@@ -268,7 +270,9 @@ func main() {
 		// 	[]string{
 		// 		"initialize",
 		// 	},
-		// 	[]string{},
+		// 	[]string{
+		// 		"L2MintableTokenMapped",
+		// 	},
 		// },
 		// {
 		// 	"ChildERC1155",
@@ -412,6 +416,15 @@ func main() {
 		// 	[]string{
 		// 		"initialize",
 		// 		"distributeRewardFor",
+		// 	},
+		// 	[]string{},
+		// },
+		// {
+		// 	"EIP1559Burn",
+		// 	gensc.EIP1559Burn,
+		// 	false,
+		// 	[]string{
+		// 		"initialize",
 		// 	},
 		// 	[]string{},
 		// },

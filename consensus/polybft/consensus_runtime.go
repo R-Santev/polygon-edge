@@ -173,7 +173,7 @@ func (c *consensusRuntime) close() {
 func (c *consensusRuntime) initStateSyncManager(logger hcf.Logger) error {
 	if c.IsBridgeEnabled() {
 		stateSenderAddr := c.config.PolyBFTConfig.Bridge.StateSenderAddr
-		stateSyncManager, err := newStateSyncManager(
+		stateSyncManager := newStateSyncManager(
 			logger.Named("state-sync-manager"),
 			c.config.State,
 			&stateSyncConfig{
@@ -187,10 +187,6 @@ func (c *consensusRuntime) initStateSyncManager(logger hcf.Logger) error {
 				numBlockConfirmations: c.config.numBlockConfirmations,
 			},
 		)
-
-		if err != nil {
-			return err
-		}
 
 		c.stateSyncManager = stateSyncManager
 	} else {
@@ -234,10 +230,10 @@ func (c *consensusRuntime) initStakeManager(logger hcf.Logger) error {
 	c.stakeManager = newStakeManager(
 		logger.Named("stake-manager"),
 		c.state,
-		c.config.blockchain,
 		wallet.NewEcdsaSigner(c.config.Key),
 		contracts.ValidatorSetContract,
 		int(c.config.PolyBFTConfig.MaxValidatorSetSize),
+		c.config.blockchain,
 	)
 
 	return nil

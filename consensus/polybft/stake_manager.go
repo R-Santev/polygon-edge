@@ -51,32 +51,34 @@ var _ StakeManager = (*stakeManager)(nil)
 type stakeManager struct {
 	logger hclog.Logger
 	state  *State
-	// H_MODIFY: Root chain is unused so remvoe rootchain relayer
+	// Hydra modify: Root chain is unused so remove rootchain relayer
 	// rootChainRelayer        txrelayer.TxRelayer
-	blockchain           blockchainBackend
 	key                  ethgo.Key
 	validatorSetContract types.Address
-	// H_MODIFY: Supernet manager is unused so remove supernet manager
+	// Hydra modify: Root chain is unused so remove supernetManagerContract
 	// supernetManagerContract types.Address
 	maxValidatorSetSize int
+	blockchain          blockchainBackend
 }
 
 // newStakeManager returns a new instance of stake manager
 func newStakeManager(
 	logger hclog.Logger,
 	state *State,
-	blockchain blockchainBackend,
 	key ethgo.Key,
 	validatorSetAddr types.Address,
 	maxValidatorSetSize int,
+	blockchain blockchainBackend,
 ) *stakeManager {
 	return &stakeManager{
-		logger:               logger,
-		state:                state,
-		blockchain:           blockchain,
+		logger: logger,
+		state:  state,
+		// rootChainRelayer:        rootchainRelayer,
 		key:                  key,
 		validatorSetContract: validatorSetAddr,
-		maxValidatorSetSize:  maxValidatorSetSize,
+		// supernetManagerContract: supernetManagerAddr,
+		maxValidatorSetSize: maxValidatorSetSize,
+		blockchain:          blockchain,
 	}
 }
 
@@ -88,9 +90,10 @@ func (s *stakeManager) PostEpoch(req *PostEpochRequest) error {
 
 	// save initial validator set as full validator set in db
 	return s.state.StakeStore.insertFullValidatorSet(validatorSetState{
-		BlockNumber: 0,
-		EpochID:     0,
-		Validators:  newValidatorStakeMap(req.ValidatorSet.Accounts()),
+		BlockNumber:          0,
+		EpochID:              0,
+		UpdatedAtBlockNumber: 0,
+		Validators:           newValidatorStakeMap(req.ValidatorSet.Accounts()),
 	})
 }
 
@@ -152,7 +155,7 @@ func (s *stakeManager) PostBlock(req *PostBlockRequest) error {
 		}
 	}
 
-	for addr, data := range stakeMap {
+	for addr, data := range fullValidatorSet.Validators {
 		if data.BlsKey == nil {
 			data.BlsKey, err = s.getBlsKey(data.Address)
 			if err != nil {
@@ -306,9 +309,10 @@ func (s *stakeManager) getSystemState(block *types.Header) (SystemState, error) 
 }
 
 type validatorSetState struct {
-	BlockNumber uint64            `json:"block"`
-	EpochID     uint64            `json:"epoch"`
-	Validators  validatorStakeMap `json:"validators"`
+	BlockNumber          uint64            `json:"block"`
+	EpochID              uint64            `json:"epoch"`
+	UpdatedAtBlockNumber uint64            `json:"updated_at_block"`
+	Validators           validatorStakeMap `json:"validators"`
 }
 
 func (vs validatorSetState) Marshal() ([]byte, error) {

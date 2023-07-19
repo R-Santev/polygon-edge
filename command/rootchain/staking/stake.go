@@ -102,11 +102,6 @@ package staking
 // 		return err
 // 	}
 
-// 	gasPrice, err := txRelayer.Client().Eth().GasPrice()
-// 	if err != nil {
-// 		return err
-// 	}
-
 // approveTxn, err := rootHelper.CreateApproveERC20Txn(params.amountValue,
 // 	types.StringToAddress(params.stakeManagerAddr), types.StringToAddress(params.stakeTokenAddr))
 // if err != nil {
@@ -132,13 +127,12 @@ package staking
 // 		return err
 // 	}
 
-// 	stakeManagerAddr := ethgo.Address(types.StringToAddress(params.stakeManagerAddr))
-// 	txn := &ethgo.Transaction{
-// 		From:     validatorAccount.Ecdsa.Address(),
-// 		Input:    encoded,
-// 		To:       &stakeManagerAddr,
-// 		GasPrice: gasPrice,
-// 	}
+// stakeManagerAddr := ethgo.Address(types.StringToAddress(params.stakeManagerAddr))
+// txn := &ethgo.Transaction{
+// 	From:  validatorAccount.Ecdsa.Address(),
+// 	Input: encoded,
+// 	To:    &stakeManagerAddr,
+// }
 
 // 	receipt, err = txRelayer.SendTransaction(txn, validatorAccount.Ecdsa)
 // 	if err != nil {
@@ -169,9 +163,9 @@ package staking
 // 			continue
 // 		}
 
-// 		result.amount = stakeAddedEvent.Amount.Uint64()
-// 		result.validatorAddress = stakeAddedEvent.Validator.String()
-// 		foundLog = true
+// result.amount = stakeAddedEvent.Amount
+// result.validatorAddress = stakeAddedEvent.Validator.String()
+// foundLog = true
 
 // 		break
 // 	}

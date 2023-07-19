@@ -20,8 +20,6 @@ func GetCommand() *cobra.Command {
 		Run:     runCommand,
 	}
 
-	helper.RegisterGRPCAddressFlag(genesisCmd)
-
 	setFlags(genesisCmd)
 	setLegacyFlags(genesisCmd)
 
@@ -72,11 +70,11 @@ func setFlags(cmd *cobra.Command) {
 		"the maximum amount of gas used by all transactions in a block",
 	)
 
-	cmd.Flags().StringArrayVar(
-		&params.burnContracts,
+	cmd.Flags().StringVar(
+		&params.burnContract,
 		burnContractFlag,
-		[]string{},
-		"the burn contract blocks and addresses (format: <block>:<address>)",
+		"",
+		"the burn contract block and address (format: <block>:<address>[:<burn destination>])",
 	)
 
 	cmd.Flags().StringArrayVar(
@@ -177,16 +175,6 @@ func setFlags(cmd *cobra.Command) {
 			"validators defined by user (format: <P2P multi address>:<ECDSA address>:<public BLS key>)",
 		)
 
-		cmd.Flags().StringArrayVar(
-			&params.stakes,
-			stakeFlag,
-			[]string{},
-			fmt.Sprintf(
-				"validators staked amount (format: <address>[:<amount>]). Default stake amount: %d",
-				command.DefaultStake,
-			),
-		)
-
 		cmd.MarkFlagsMutuallyExclusive(validatorsFlag, validatorsPathFlag)
 		cmd.MarkFlagsMutuallyExclusive(validatorsFlag, validatorsPrefixFlag)
 
@@ -223,7 +211,8 @@ func setFlags(cmd *cobra.Command) {
 			&params.nativeTokenConfigRaw,
 			nativeTokenConfigFlag,
 			"",
-			"configuration of native token in format <name:symbol:decimals count:mintable flag>",
+			"native token configuration, provided in the following format: "+
+				"<name:symbol:decimals count:mintable flag:[mintable token owner address]>",
 		)
 
 		cmd.Flags().StringVar(
