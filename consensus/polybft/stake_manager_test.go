@@ -69,9 +69,9 @@ func TestStakeManager_PostBlock(t *testing.T) {
 	systemStateMock := new(systemStateMock)
 	systemStateMock.On("GetStakeOnValidatorSet", mock.Anything).Return(big.NewInt(int64(zeroStake)), nil).Once()
 
-	blockchainMock := new(blockchainMock)
-	blockchainMock.On("GetStateProviderForBlock", mock.Anything).Return(new(stateProviderMock)).Once()
-	blockchainMock.On("GetSystemState", mock.Anything, mock.Anything).Return(systemStateMock)
+	blockchainMockVar := new(blockchainMock)
+	blockchainMockVar.On("GetStateProviderForBlock", mock.Anything).Return(new(stateProviderMock)).Once()
+	blockchainMockVar.On("GetSystemState", mock.Anything, mock.Anything).Return(systemStateMock)
 
 	state := newTestState(t)
 	t.Run("PostBlock - unstake to zero", func(t *testing.T) {
@@ -84,7 +84,7 @@ func TestStakeManager_PostBlock(t *testing.T) {
 			wallet.NewEcdsaSigner(validators.GetValidator("A").Key()),
 			types.StringToAddress("0x0001"),
 			5,
-			blockchainMock,
+			blockchainMockVar,
 		)
 
 		// insert initial full validator set
@@ -139,7 +139,7 @@ func TestStakeManager_PostBlock(t *testing.T) {
 			wallet.NewEcdsaSigner(validators.GetValidator("A").Key()),
 			types.StringToAddress("0x0001"),
 			5,
-			blockchainMock,
+			blockchainMockVar,
 		)
 
 		// insert initial full validator set
@@ -204,7 +204,7 @@ func TestStakeManager_PostBlock(t *testing.T) {
 			wallet.NewEcdsaSigner(validators.GetValidator("A").Key()),
 			types.StringToAddress("0x0001"),
 			5,
-			blockchainMock,
+			blockchainMockVar,
 		)
 
 		// insert initial full validator set
@@ -261,11 +261,10 @@ func TestStakeManager_PostBlock(t *testing.T) {
 		stakeManager := newStakeManager(
 			hclog.NewNullLogger(),
 			state,
-			nil,
 			wallet.NewEcdsaSigner(validators.GetValidator("A").Key()),
-			types.StringToAddress("0x0001"), types.StringToAddress("0x0002"),
-			bcMock,
+			types.StringToAddress("0x0002"),
 			5,
+			bcMock,
 		)
 
 		// insert initial full validator set

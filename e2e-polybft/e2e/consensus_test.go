@@ -24,6 +24,8 @@ import (
 	"github.com/0xPolygon/polygon-edge/types"
 )
 
+// Hydra TODO: Fix consensus tests
+
 var uint256ABIType = abi.MustNewType("tuple(uint256)")
 
 func TestE2E_Consensus_Basic_WithNonValidators(t *testing.T) {

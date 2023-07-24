@@ -18,7 +18,6 @@ import (
 	"github.com/0xPolygon/polygon-edge/command/genesis"
 	"github.com/0xPolygon/polygon-edge/command/polybftsecrets"
 	rootHelper "github.com/0xPolygon/polygon-edge/command/rootchain/helper"
-	"github.com/0xPolygon/polygon-edge/command/rootchain/server"
 	"github.com/0xPolygon/polygon-edge/consensus/polybft"
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/wallet"
 	"github.com/0xPolygon/polygon-edge/types"

@@ -13,6 +13,7 @@ import (
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/contractsapi"
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/contractsapi/artifact"
 	bls "github.com/0xPolygon/polygon-edge/consensus/polybft/signer"
+	"github.com/0xPolygon/polygon-edge/consensus/polybft/validator"
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/wallet"
 	"github.com/0xPolygon/polygon-edge/contracts"
 	"github.com/0xPolygon/polygon-edge/helper/hex"
@@ -265,7 +266,7 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 	reward := uint64(math.Pow(10, 18))             // 1 token
 	delegateAmount := uint64(math.Pow(10, 18)) / 2 // 0.5 token
 
-	validatorSets := make([]*testValidators, len(validatorSetSize), len(validatorSetSize))
+	validatorSets := make([]*validator.TestValidators, len(validatorSetSize), len(validatorSetSize))
 
 	// create all validator sets which will be used in test
 	for i, size := range validatorSetSize {
@@ -277,13 +278,13 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 			vps[j] = intialBalance
 		}
 
-		validatorSets[i] = newTestValidatorsWithAliases(t, aliases, vps)
+		validatorSets[i] = validator.NewTestValidatorsWithAliases(t, aliases, vps)
 	}
 
 	// iterate through the validator set and do the test for each of them
 	for _, currentValidators := range validatorSets {
-		accSet := currentValidators.getPublicIdentities()
-		accSetPrivateKeys := currentValidators.getPrivateIdentities()
+		accSet := currentValidators.GetPublicIdentities()
+		accSetPrivateKeys := currentValidators.GetPrivateIdentities()
 		valid2deleg := make(map[types.Address][]*wallet.Key, accSet.Len()) // delegators assigned to validators
 
 		// add contracts to genesis data
@@ -297,25 +298,25 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 		}
 
 		// validator data for polybft config
-		initValidators := make([]*Validator, accSet.Len())
+		initValidators := make([]*validator.GenesisValidator, accSet.Len())
 
-		for i, validator := range accSet {
+		for i, val := range accSet {
 			// add validator to genesis data
-			alloc[validator.Address] = &chain.GenesisAccount{
-				Balance: validator.VotingPower,
+			alloc[val.Address] = &chain.GenesisAccount{
+				Balance: val.VotingPower,
 			}
 
-			signature, err := bls.MakeKOSKSignature(accSetPrivateKeys[i].Bls, validator.Address, 0, bls.DomainValidatorSet)
+			signature, err := bls.MakeKOSKSignature(accSetPrivateKeys[i].Bls, val.Address, 0, bls.DomainValidatorSet)
 			require.NoError(t, err)
 
 			signatureBytes, err := signature.Marshal()
 			require.NoError(t, err)
 
 			// create validator data for polybft config
-			initValidators[i] = &Validator{
-				Address:      validator.Address,
-				Balance:      validator.VotingPower,
-				BlsKey:       hex.EncodeToString(validator.BlsKey.Marshal()),
+			initValidators[i] = &validator.GenesisValidator{
+				Address:      val.Address,
+				Balance:      val.VotingPower,
+				BlsKey:       hex.EncodeToString(val.BlsKey.Marshal()),
 				BlsSignature: hex.EncodeToString(signatureBytes),
 			}
 
@@ -330,7 +331,7 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 				}
 			}
 
-			valid2deleg[validator.Address] = delegatorAccs
+			valid2deleg[val.Address] = delegatorAccs
 		}
 
 		transition := newTestTransition(t, alloc)
@@ -341,15 +342,11 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 			SprintSize:          5,
 			EpochReward:         reward,
 			// use 1st account as governance address
-			Governance: currentValidators.toValidatorSet().validators.GetAddresses()[0],
+			Governance: currentValidators.ToValidatorSet().Accounts().GetAddresses()[0],
 		}
 
-		// get data for ChildValidatorSet initialization
-		initInput, err := getInitChildValidatorSetInput(polyBFTConfig)
-		require.NoError(t, err)
-
-		// init ChildValidatorSet
-		err = initContract(contracts.SystemCaller, contracts.ValidatorSetContract, initInput, "ChildValidatorSet", transition)
+		// init ValidatorSet
+		err := initValidatorSet(polyBFTConfig, transition)
 		require.NoError(t, err)
 
 		// delegate amounts to validators

@@ -32,7 +32,7 @@ func initValidatorSet(polyBFTConfig PolyBFTConfig, transition *state.Transition)
 		initialValidators[i] = validatorData
 	}
 
-	initFn := &contractsapi.InitializeChildValidatorSetFn{
+	initFn := &contractsapi.InitializeValidatorSetFn{
 		Init: &contractsapi.InitStruct{
 			EpochReward:   new(big.Int).SetUint64(polyBFTConfig.EpochReward),
 			MinStake:      big.NewInt(minStake),

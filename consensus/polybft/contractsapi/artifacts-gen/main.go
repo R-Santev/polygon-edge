@@ -37,74 +37,6 @@ func main() {
 			"child/StateReceiver.sol",
 			"StateReceiver",
 		},
-		// {
-		// 	"child/NativeERC20.sol",
-		// 	"NativeERC20",
-		// },
-		// {
-		// 	"child/NativeERC20Mintable.sol",
-		// 	"NativeERC20Mintable",
-		// },
-		// {
-		// 	"child/ChildERC20.sol",
-		// 	"ChildERC20",
-		// },
-		// {
-		// 	"child/ChildERC20Predicate.sol",
-		// 	"ChildERC20Predicate",
-		// },
-		// {
-		// 	"child/ChildERC20PredicateAccessList.sol",
-		// 	"ChildERC20PredicateACL",
-		// },
-		// {
-		// 	"child/RootMintableERC20Predicate.sol",
-		// 	"RootMintableERC20Predicate",
-		// },
-		// {
-		// 	"child/RootMintableERC20PredicateAccessList.sol",
-		// 	"RootMintableERC20PredicateACL",
-		// },
-		// {
-		// 	"child/ChildERC721.sol",
-		// 	"ChildERC721",
-		// },
-		// {
-		// 	"child/ChildERC721Predicate.sol",
-		// 	"ChildERC721Predicate",
-		// },
-		// {
-		// 	"child/ChildERC721PredicateAccessList.sol",
-		// 	"ChildERC721PredicateACL",
-		// },
-		// {
-		// 	"child/RootMintableERC721Predicate.sol",
-		// 	"RootMintableERC721Predicate",
-		// },
-		// {
-		// 	"child/RootMintableERC721PredicateAccessList.sol",
-		// 	"RootMintableERC721PredicateACL",
-		// },
-		// {
-		// 	"child/ChildERC1155.sol",
-		// 	"ChildERC1155",
-		// },
-		// {
-		// 	"child/ChildERC1155Predicate.sol",
-		// 	"ChildERC1155Predicate",
-		// },
-		// {
-		// 	"child/ChildERC1155PredicateAccessList.sol",
-		// 	"ChildERC1155PredicateACL",
-		// },
-		// {
-		// 	"child/RootMintableERC1155Predicate.sol",
-		// 	"RootMintableERC1155Predicate",
-		// },
-		// {
-		// 	"child/RootMintableERC1155PredicateAccessList.sol",
-		// 	"RootMintableERC1155PredicateACL",
-		// },
 		{
 			"child/System.sol",
 			"System",
@@ -133,95 +65,10 @@ func main() {
 			"root/StateSender.sol",
 			"StateSender",
 		},
-		// H_MODIFY: unused contracts
-		// {
-		// 	"mocks/MockERC20.sol",
-		// 	"MockERC20",
-		// },
-		// {
-		// 	"root/RootERC20Predicate.sol",
-		// 	"RootERC20Predicate",
-		// },
-		// {
-		// 	"mocks/MockERC721.sol",
-		// 	"MockERC721",
-		// },
-		// {
-		// 	"root/RootERC721Predicate.sol",
-		// 	"RootERC721Predicate",
-		// },
-		// {
-		// 	"mocks/MockERC1155.sol",
-		// 	"MockERC1155",
-		// },
-		// {
-		// 	"root/RootERC1155Predicate.sol",
-		// 	"RootERC1155Predicate",
-		// },
-		// {
-		// 	"root/staking/CustomSupernetManager.sol",
-		// 	"CustomSupernetManager",
-		// },
-		// {
-		// 	"root/staking/StakeManager.sol",
-		// 	"StakeManager",
-		// },
-		// {
-		// 	"child/validator/RewardPool.sol",
-		// 	"RewardPool",
-		// },
 		{
 			"child/ChildValidatorSet.sol",
 			"ChildValidatorSet",
 		},
-		// {
-		// 	"root/RootERC20Predicate.sol",
-		// 	"RootERC20Predicate",
-		// },
-		// {
-		// 	"root/ChildMintableERC20Predicate.sol",
-		// 	"ChildMintableERC20Predicate",
-		// },
-		// {
-		// 	"mocks/MockERC721.sol",
-		// 	"MockERC721",
-		// },
-		// {
-		// 	"root/RootERC721Predicate.sol",
-		// 	"RootERC721Predicate",
-		// },
-		// {
-		// 	"root/ChildMintableERC721Predicate.sol",
-		// 	"ChildMintableERC721Predicate",
-		// },
-		// {
-		// 	"mocks/MockERC1155.sol",
-		// 	"MockERC1155",
-		// },
-		// {
-		// 	"root/RootERC1155Predicate.sol",
-		// 	"RootERC1155Predicate",
-		// },
-		// {
-		// 	"root/ChildMintableERC1155Predicate.sol",
-		// 	"ChildMintableERC1155Predicate",
-		// },
-		// {
-		// 	"root/staking/CustomSupernetManager.sol",
-		// 	"CustomSupernetManager",
-		// },
-		// {
-		// 	"root/staking/StakeManager.sol",
-		// 	"StakeManager",
-		// },
-		// {
-		// 	"child/validator/RewardPool.sol",
-		// 	"RewardPool",
-		// },
-		// {
-		// 	"child/validator/ValidatorSet.sol",
-		// 	"ValidatorSet",
-		// },
 	}
 
 	for _, v := range readContracts {
