@@ -1,7 +1,6 @@
 package polybft
 
 import (
-	"math"
 	"math/big"
 	"strconv"
 	"testing"
@@ -19,6 +18,10 @@ import (
 	"github.com/0xPolygon/polygon-edge/helper/hex"
 	"github.com/0xPolygon/polygon-edge/state"
 	"github.com/0xPolygon/polygon-edge/types"
+)
+
+var (
+	oneCoin = big.NewInt(1e18)
 )
 
 // H_MODIFY: Unused functionality
@@ -262,9 +265,9 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 	// number of delegators per validator
 	delegatorsPerValidator := 100
 
-	intialBalance := uint64(5 * math.Pow(10, 18))  // 5 tokens
-	reward := uint64(math.Pow(10, 18))             // 1 token
-	delegateAmount := uint64(math.Pow(10, 18)) / 2 // 0.5 token
+	intialBalance := uint64(5e18) // 5 tokens
+	reward := oneCoin
+	delegateAmount := oneCoin
 
 	validatorSets := make([]*validator.TestValidators, len(validatorSetSize), len(validatorSetSize))
 
@@ -303,7 +306,7 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 		for i, val := range accSet {
 			// add validator to genesis data
 			alloc[val.Address] = &chain.GenesisAccount{
-				Balance: val.VotingPower,
+				Balance: oneCoin,
 			}
 
 			signature, err := bls.MakeKOSKSignature(accSetPrivateKeys[i].Bls, val.Address, 0, bls.DomainValidatorSet)
@@ -340,7 +343,7 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 			InitialValidatorSet: initValidators,
 			EpochSize:           24 * 60 * 60 / 2,
 			SprintSize:          5,
-			EpochReward:         reward,
+			EpochReward:         reward.Uint64(),
 			// use 1st account as governance address
 			Governance: currentValidators.ToValidatorSet().Accounts().GetAddresses()[0],
 		}
@@ -356,7 +359,7 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 					[]interface{}{valAddress, false})
 				require.NoError(t, err)
 
-				result := transition.Call2(types.Address(delegator.Address()), contracts.ValidatorSetContract, encoded, new(big.Int).SetUint64(delegateAmount), 1000000000000)
+				result := transition.Call2(types.Address(delegator.Address()), contracts.ValidatorSetContract, encoded, delegateAmount, 1000000000000)
 				require.False(t, result.Failed())
 			}
 		}

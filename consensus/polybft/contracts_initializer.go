@@ -13,8 +13,8 @@ import (
 
 const (
 	// safe numbers for the test
-	minStake      = 1
-	minDelegation = 1
+	minStake      = 1e18
+	minDelegation = 1e18
 
 	contractCallGasLimit = 100_000_000
 )
