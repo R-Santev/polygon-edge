@@ -25,7 +25,7 @@ func TestRewardsCalculator_getStakedBalance(t *testing.T) {
 		}
 
 		_, err := calculator.getStakedBalance(block)
-		assert.EqualError(t, err, "Cannot get system state!")
+		assert.EqualError(t, err, ErrCannotGetSystemState.Error())
 	})
 
 	t.Run("returns error when systemState.GetStakedBalance fails", func(t *testing.T) {

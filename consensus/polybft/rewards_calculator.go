@@ -65,6 +65,8 @@ var (
 		big.NewInt(2116),
 		big.NewInt(2178),
 	}
+
+	ErrCannotGetSystemState = fmt.Errorf("cannot get system state")
 )
 
 type RewardsCalculator interface {
@@ -179,7 +181,7 @@ func (r *rewardsCalculator) getMacroFactor(block *types.Header) (*big.Int, error
 func (r *rewardsCalculator) getSystemState(block *types.Header) (SystemState, error) {
 	provider, err := r.blockchain.GetStateProviderForBlock(block)
 	if err != nil {
-		return nil, fmt.Errorf("Cannot get system state!")
+		return nil, ErrCannotGetSystemState
 	}
 
 	return r.blockchain.GetSystemState(provider), nil

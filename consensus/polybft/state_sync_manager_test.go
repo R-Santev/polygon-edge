@@ -5,14 +5,12 @@ import (
 	"math/rand"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 	"github.com/umbracle/ethgo"
 	"github.com/umbracle/ethgo/abi"
-	"github.com/umbracle/ethgo/testutil"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/contractsapi"
@@ -282,47 +280,48 @@ func TestStateSyncManager_BuildCommitment(t *testing.T) {
 	require.NotNil(t, commitment)
 }
 
-func TestStateSyncerManager_BuildProofs(t *testing.T) {
-	vals := validator.NewTestValidators(t, 5)
+// Hydra Modify: Unused fuctionality
+// func TestStateSyncerManager_BuildProofs(t *testing.T) {
+// 	vals := validator.NewTestValidators(t, 5)
 
-	s := newTestStateSyncManager(t, vals.GetValidator("0"), &mockRuntime{isActiveValidator: true})
+// 	s := newTestStateSyncManager(t, vals.GetValidator("0"), &mockRuntime{isActiveValidator: true})
 
-	for _, evnt := range generateStateSyncEvents(t, 20, 0) {
-		require.NoError(t, s.state.StateSyncStore.insertStateSyncEvent(evnt))
-	}
+// 	for _, evnt := range generateStateSyncEvents(t, 20, 0) {
+// 		require.NoError(t, s.state.StateSyncStore.insertStateSyncEvent(evnt))
+// 	}
 
-	require.NoError(t, s.buildCommitment())
-	require.Len(t, s.pendingCommitments, 1)
+// 	require.NoError(t, s.buildCommitment())
+// 	require.Len(t, s.pendingCommitments, 1)
 
-	mockMsg := &CommitmentMessageSigned{
-		Message: &contractsapi.StateSyncCommitment{
-			StartID: s.pendingCommitments[0].StartID,
-			EndID:   s.pendingCommitments[0].EndID,
-		},
-	}
+// 	mockMsg := &CommitmentMessageSigned{
+// 		Message: &contractsapi.StateSyncCommitment{
+// 			StartID: s.pendingCommitments[0].StartID,
+// 			EndID:   s.pendingCommitments[0].EndID,
+// 		},
+// 	}
 
-	txData, err := mockMsg.EncodeAbi()
-	require.NoError(t, err)
+// 	txData, err := mockMsg.EncodeAbi()
+// 	require.NoError(t, err)
 
-	tx := createStateTransactionWithData(types.Address{}, txData, nil)
+// 	tx := createStateTransactionWithData(types.Address{}, txData, nil)
 
-	req := &PostBlockRequest{
-		FullBlock: &types.FullBlock{
-			Block: &types.Block{
-				Transactions: []*types.Transaction{tx},
-			},
-		},
-	}
+// 	req := &PostBlockRequest{
+// 		FullBlock: &types.FullBlock{
+// 			Block: &types.Block{
+// 				Transactions: []*types.Transaction{tx},
+// 			},
+// 		},
+// 	}
 
-	require.NoError(t, s.PostBlock(req))
-	require.Equal(t, mockMsg.Message.EndID.Uint64()+1, s.nextCommittedIndex)
+// 	require.NoError(t, s.PostBlock(req))
+// 	require.Equal(t, mockMsg.Message.EndID.Uint64()+1, s.nextCommittedIndex)
 
-	for i := uint64(0); i < 10; i++ {
-		proof, err := s.state.StateSyncStore.getStateSyncProof(i)
-		require.NoError(t, err)
-		require.NotNil(t, proof)
-	}
-}
+// 	for i := uint64(0); i < 10; i++ {
+// 		proof, err := s.state.StateSyncStore.getStateSyncProof(i)
+// 		require.NoError(t, err)
+// 		require.NotNil(t, proof)
+// 	}
+// }
 
 func TestStateSyncerManager_AddLog_BuildCommitments(t *testing.T) {
 	t.Parallel()
@@ -430,48 +429,49 @@ func TestStateSyncerManager_AddLog_BuildCommitments(t *testing.T) {
 	})
 }
 
-func TestStateSyncerManager_EventTracker_Sync(t *testing.T) {
-	t.Parallel()
+// Hydra Modify: unused functionality
+// func TestStateSyncerManager_EventTracker_Sync(t *testing.T) {
+// 	t.Parallel()
 
-	vals := validator.NewTestValidators(t, 5)
-	s := newTestStateSyncManager(t, vals.GetValidator("0"), &mockRuntime{isActiveValidator: true})
+// 	vals := validator.NewTestValidators(t, 5)
+// 	s := newTestStateSyncManager(t, vals.GetValidator("0"), &mockRuntime{isActiveValidator: true})
 
-	server := testutil.DeployTestServer(t, nil)
+// 	server := testutil.DeployTestServer(t, nil)
 
-	// Deploy contract
-	contractReceipt, err := server.SendTxn(&ethgo.Transaction{
-		Input: contractsapi.StateSender.Bytecode,
-	})
-	require.NoError(t, err)
+// 	// Deploy contract
+// 	contractReceipt, err := server.SendTxn(&ethgo.Transaction{
+// 		Input: contractsapi.StateSender.Bytecode,
+// 	})
+// 	require.NoError(t, err)
 
-	// Create contract function call payload
-	encodedSyncStateData, err := (&contractsapi.SyncStateStateSenderFn{
-		Receiver: types.BytesToAddress(server.Account(0).Bytes()),
-		Data:     []byte{},
-	}).EncodeAbi()
-	require.NoError(t, err)
+// 	// Create contract function call payload
+// 	encodedSyncStateData, err := (&contractsapi.SyncStateStateSenderFn{
+// 		Receiver: types.BytesToAddress(server.Account(0).Bytes()),
+// 		Data:     []byte{},
+// 	}).EncodeAbi()
+// 	require.NoError(t, err)
 
-	// prefill with 10 events
-	for i := 0; i < 10; i++ {
-		receipt, err := server.SendTxn(&ethgo.Transaction{
-			To:    &contractReceipt.ContractAddress,
-			Input: encodedSyncStateData,
-		})
-		require.NoError(t, err)
-		require.Equal(t, uint64(types.ReceiptSuccess), receipt.Status)
-	}
+// 	// prefill with 10 events
+// 	for i := 0; i < 10; i++ {
+// 		receipt, err := server.SendTxn(&ethgo.Transaction{
+// 			To:    &contractReceipt.ContractAddress,
+// 			Input: encodedSyncStateData,
+// 		})
+// 		require.NoError(t, err)
+// 		require.Equal(t, uint64(types.ReceiptSuccess), receipt.Status)
+// 	}
 
-	s.config.stateSenderAddr = types.Address(contractReceipt.ContractAddress)
-	s.config.jsonrpcAddr = server.HTTPAddr()
+// 	s.config.stateSenderAddr = types.Address(contractReceipt.ContractAddress)
+// 	s.config.jsonrpcAddr = server.HTTPAddr()
 
-	require.NoError(t, s.initTracker())
+// 	require.NoError(t, s.initTracker())
 
-	time.Sleep(2 * time.Second)
+// 	time.Sleep(2 * time.Second)
 
-	events, err := s.state.StateSyncStore.getStateSyncEventsForCommitment(1, 10)
-	require.NoError(t, err)
-	require.Len(t, events, 10)
-}
+// 	events, err := s.state.StateSyncStore.getStateSyncEventsForCommitment(1, 10)
+// 	require.NoError(t, err)
+// 	require.Len(t, events, 10)
+// }
 
 func TestStateSyncManager_Close(t *testing.T) {
 	t.Parallel()

@@ -23,15 +23,16 @@ func TestEncoding_Method(t *testing.T) {
 
 	cases := []method{
 		// empty commit
-		&CommitStateReceiverFn{
-			Commitment: &StateSyncCommitment{
-				StartID: big.NewInt(1),
-				EndID:   big.NewInt(1),
-				Root:    types.EmptyRootHash,
-			},
-			Signature: []byte{},
-			Bitmap:    []byte{},
-		},
+		// Hydra Modify: Unused logic
+		// &CommitStateReceiverFn{
+		// 	Commitment: &StateSyncCommitment{
+		// 		StartID: big.NewInt(1),
+		// 		EndID:   big.NewInt(1),
+		// 		Root:    types.EmptyRootHash,
+		// 	},
+		// 	Signature: []byte{},
+		// 	Bitmap:    []byte{},
+		// },
 		// empty commit epoch
 		&CommitEpochValidatorSetFn{
 			ID: big.NewInt(1),

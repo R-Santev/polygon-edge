@@ -256,8 +256,15 @@ func (s *systemStateMock) GetValidatorBlsKey(addr types.Address) (*bls.PublicKey
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (s *systemStateMock) GetVotingPowerExponent() (exponent *BigNumDecimal, err error) {
-	return nil, fmt.Errorf("not implemented")
+func (s *systemStateMock) GetVotingPowerExponent() (*BigNumDecimal, error) {
+	args := s.Called()
+	exp, _ := args.Get(0).(*BigNumDecimal)
+	var err error
+	if args.Get(1) != nil {
+		err, _ = args.Get(1).(error)
+	}
+
+	return exp, err
 }
 
 func (s *systemStateMock) GetBaseReward() (*BigNumDecimal, error) {

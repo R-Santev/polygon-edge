@@ -158,13 +158,28 @@ func (v *TestValidator) Key() *wallet.Key {
 }
 
 func (v *TestValidator) ParamsValidator() *GenesisValidator {
-	bls := v.Account.Bls.PublicKey().Marshal()
+	blskey := v.Account.Bls.PublicKey().Marshal()
+	blsSignature, err := bls.MakeKOSKSignature(
+		v.Account.Bls,
+		types.Address(v.Account.Ecdsa.Address()),
+		1,
+		bls.DomainValidatorSet,
+	)
+	if err != nil {
+		panic(fmt.Sprintf("BUG: failed to sign validator params: %v", err))
+	}
+
+	signatureBytes, err := blsSignature.Marshal()
+	if err != nil {
+		panic(fmt.Sprintf("BUG: failed to marshal validator params signature: %v", err))
+	}
 
 	return &GenesisValidator{
-		Address: v.Address(),
-		BlsKey:  hex.EncodeToString(bls),
-		Balance: big.NewInt(1000),
-		Stake:   big.NewInt(1000),
+		Address:      v.Address(),
+		BlsKey:       hex.EncodeToString(blskey),
+		BlsSignature: hex.EncodeToString(signatureBytes),
+		Balance:      big.NewInt(1000),
+		Stake:        big.NewInt(1000),
 	}
 }
 

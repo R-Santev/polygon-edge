@@ -45,66 +45,67 @@ func TestCommitmentMessage_Hash(t *testing.T) {
 	require.NotEqual(t, hash3, hash4)
 }
 
-func TestCommitmentMessage_ToRegisterCommitmentInputData(t *testing.T) {
-	t.Parallel()
+// Hydra modification: Unused functionality
+// func TestCommitmentMessage_ToRegisterCommitmentInputData(t *testing.T) {
+// 	t.Parallel()
 
-	const epoch, eventsCount = uint64(100), 11
-	pendingCommitment, _, _ := buildCommitmentAndStateSyncs(t, eventsCount, epoch, uint64(2))
-	expectedSignedCommitmentMsg := &CommitmentMessageSigned{
-		Message: pendingCommitment.StateSyncCommitment,
-		AggSignature: Signature{
-			Bitmap:              []byte{5, 1},
-			AggregatedSignature: []byte{1, 1},
-		},
-		PublicKeys: [][]byte{{0, 1}, {2, 3}, {4, 5}},
-	}
-	inputData, err := expectedSignedCommitmentMsg.EncodeAbi()
-	require.NoError(t, err)
-	require.NotEmpty(t, inputData)
+// 	const epoch, eventsCount = uint64(100), 11
+// 	pendingCommitment, _, _ := buildCommitmentAndStateSyncs(t, eventsCount, epoch, uint64(2))
+// 	expectedSignedCommitmentMsg := &CommitmentMessageSigned{
+// 		Message: pendingCommitment.StateSyncCommitment,
+// 		AggSignature: Signature{
+// 			Bitmap:              []byte{5, 1},
+// 			AggregatedSignature: []byte{1, 1},
+// 		},
+// 		PublicKeys: [][]byte{{0, 1}, {2, 3}, {4, 5}},
+// 	}
+// 	inputData, err := expectedSignedCommitmentMsg.EncodeAbi()
+// 	require.NoError(t, err)
+// 	require.NotEmpty(t, inputData)
 
-	var actualSignedCommitmentMsg CommitmentMessageSigned
+// 	var actualSignedCommitmentMsg CommitmentMessageSigned
 
-	require.NoError(t, actualSignedCommitmentMsg.DecodeAbi(inputData))
-	require.NoError(t, err)
-	require.Equal(t, *expectedSignedCommitmentMsg.Message, *actualSignedCommitmentMsg.Message)
-	require.Equal(t, expectedSignedCommitmentMsg.AggSignature, actualSignedCommitmentMsg.AggSignature)
-}
+// 	require.NoError(t, actualSignedCommitmentMsg.DecodeAbi(inputData))
+// 	require.NoError(t, err)
+// 	require.Equal(t, *expectedSignedCommitmentMsg.Message, *actualSignedCommitmentMsg.Message)
+// 	require.Equal(t, expectedSignedCommitmentMsg.AggSignature, actualSignedCommitmentMsg.AggSignature)
+// }
 
-func TestCommitmentMessage_VerifyProof(t *testing.T) {
-	t.Parallel()
+// func TestCommitmentMessage_VerifyProof(t *testing.T) {
+// 	t.Parallel()
 
-	const epoch, eventsCount = uint64(100), 11
-	commitment, commitmentSigned, stateSyncs := buildCommitmentAndStateSyncs(t, eventsCount, epoch, 0)
-	require.Equal(t, uint64(10), commitment.EndID.Sub(commitment.EndID, commitment.StartID).Uint64())
+// 	const epoch, eventsCount = uint64(100), 11
+// 	commitment, commitmentSigned, stateSyncs := buildCommitmentAndStateSyncs(t, eventsCount, epoch, 0)
+// 	require.Equal(t, uint64(10), commitment.EndID.Sub(commitment.EndID, commitment.StartID).Uint64())
 
-	for _, stateSync := range stateSyncs {
-		leaf, err := stateSync.EncodeAbi()
-		require.NoError(t, err)
+// 	for _, stateSync := range stateSyncs {
+// 		leaf, err := stateSync.EncodeAbi()
+// 		require.NoError(t, err)
 
-		proof, err := commitment.MerkleTree.GenerateProof(leaf)
-		require.NoError(t, err)
+// 		proof, err := commitment.MerkleTree.GenerateProof(leaf)
+// 		require.NoError(t, err)
 
-		execute := &contractsapi.ExecuteStateReceiverFn{
-			Proof: proof,
-			Obj:   (*contractsapi.StateSync)(stateSync),
-		}
+// 		execute := &contractsapi.ExecuteStateReceiverFn{
+// 			Proof: proof,
+// 			Obj:   (*contractsapi.StateSync)(stateSync),
+// 		}
 
-		inputData, err := execute.EncodeAbi()
-		require.NoError(t, err)
+// 		inputData, err := execute.EncodeAbi()
+// 		require.NoError(t, err)
 
-		executionStateSync := &contractsapi.ExecuteStateReceiverFn{}
-		require.NoError(t, executionStateSync.DecodeAbi(inputData))
-		require.Equal(t, stateSync.ID.Uint64(), executionStateSync.Obj.ID.Uint64())
-		require.Equal(t, stateSync.Sender, executionStateSync.Obj.Sender)
-		require.Equal(t, stateSync.Receiver, executionStateSync.Obj.Receiver)
-		require.Equal(t, stateSync.Data, executionStateSync.Obj.Data)
-		require.Equal(t, proof, executionStateSync.Proof)
+// 		executionStateSync := &contractsapi.ExecuteStateReceiverFn{}
+// 		require.NoError(t, executionStateSync.DecodeAbi(inputData))
+// 		require.Equal(t, stateSync.ID.Uint64(), executionStateSync.Obj.ID.Uint64())
+// 		require.Equal(t, stateSync.Sender, executionStateSync.Obj.Sender)
+// 		require.Equal(t, stateSync.Receiver, executionStateSync.Obj.Receiver)
+// 		require.Equal(t, stateSync.Data, executionStateSync.Obj.Data)
+// 		require.Equal(t, proof, executionStateSync.Proof)
 
-		err = commitmentSigned.VerifyStateSyncProof(executionStateSync.Proof,
-			(*contractsapi.StateSyncedEvent)(executionStateSync.Obj))
-		require.NoError(t, err)
-	}
-}
+// 		err = commitmentSigned.VerifyStateSyncProof(executionStateSync.Proof,
+// 			(*contractsapi.StateSyncedEvent)(executionStateSync.Obj))
+// 		require.NoError(t, err)
+// 	}
+// }
 
 func TestCommitmentMessage_VerifyProof_NoStateSyncsInCommitment(t *testing.T) {
 	t.Parallel()

@@ -19,52 +19,53 @@ import (
 	"github.com/umbracle/ethgo/testutil"
 )
 
-func TestSystemState_GetNextCommittedIndex(t *testing.T) {
-	t.Parallel()
+// Hydra modifications: Unused functionality test removed
+// func TestSystemState_GetNextCommittedIndex(t *testing.T) {
+// 	t.Parallel()
 
-	var sideChainBridgeABI, _ = abi.NewMethod(
-		"function setNextCommittedIndex(uint256 _index) public payable",
-	)
+// 	var sideChainBridgeABI, _ = abi.NewMethod(
+// 		"function setNextCommittedIndex(uint256 _index) public payable",
+// 	)
 
-	cc := &testutil.Contract{}
-	cc.AddCallback(func() string {
-		return `
-		uint256 public lastCommittedId;
-		
-		function setNextCommittedIndex(uint256 _index) public payable {
-			lastCommittedId = _index;
-		}`
-	})
+// 	cc := &testutil.Contract{}
+// 	cc.AddCallback(func() string {
+// 		return `
+// 		uint256 public lastCommittedId;
 
-	solcContract, err := cc.Compile()
-	require.NoError(t, err)
+// 		function setNextCommittedIndex(uint256 _index) public payable {
+// 			lastCommittedId = _index;
+// 		}`
+// 	})
 
-	bin, err := hex.DecodeString(solcContract.Bin)
-	require.NoError(t, err)
+// 	solcContract, err := cc.Compile()
+// 	require.NoError(t, err)
 
-	transition := newTestTransition(t, nil)
+// 	bin, err := hex.DecodeString(solcContract.Bin)
+// 	require.NoError(t, err)
 
-	// deploy a contract
-	result := transition.Create2(types.Address{}, bin, big.NewInt(0), 1000000000)
-	assert.NoError(t, result.Err)
+// 	transition := newTestTransition(t, nil)
 
-	provider := &stateProvider{
-		transition: transition,
-	}
+// 	// deploy a contract
+// 	result := transition.Create2(types.Address{}, bin, big.NewInt(0), 1000000000)
+// 	assert.NoError(t, result.Err)
 
-	systemState := NewSystemState(contracts.ValidatorSetContract, result.Address, provider)
+// 	provider := &stateProvider{
+// 		transition: transition,
+// 	}
 
-	expectedNextCommittedIndex := uint64(45)
-	input, err := sideChainBridgeABI.Encode([1]interface{}{expectedNextCommittedIndex})
-	assert.NoError(t, err)
+// 	systemState := NewSystemState(contracts.ValidatorSetContract, result.Address, provider)
 
-	_, err = provider.Call(ethgo.Address(result.Address), input, &contract.CallOpts{})
-	assert.NoError(t, err)
+// 	expectedNextCommittedIndex := uint64(45)
+// 	input, err := sideChainBridgeABI.Encode([1]interface{}{expectedNextCommittedIndex})
+// 	assert.NoError(t, err)
 
-	nextCommittedIndex, err := systemState.GetNextCommittedIndex()
-	assert.NoError(t, err)
-	assert.Equal(t, expectedNextCommittedIndex+1, nextCommittedIndex)
-}
+// 	_, err = provider.Call(ethgo.Address(result.Address), input, &contract.CallOpts{})
+// 	assert.NoError(t, err)
+
+// 	nextCommittedIndex, err := systemState.GetNextCommittedIndex()
+// 	assert.NoError(t, err)
+// 	assert.Equal(t, expectedNextCommittedIndex+1, nextCommittedIndex)
+// }
 
 func TestSystemState_GetEpoch(t *testing.T) {
 	t.Parallel()

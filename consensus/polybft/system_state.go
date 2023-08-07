@@ -66,11 +66,12 @@ func NewSystemState(valSetAddr types.Address, stateRcvAddr types.Address, provid
 		contractsapi.ChildValidatorSet.Abi, contract.WithProvider(provider),
 	)
 
-	s.sidechainBridgeContract = contract.NewContract(
-		ethgo.Address(stateRcvAddr),
-		contractsapi.StateReceiver.Abi,
-		contract.WithProvider(provider),
-	)
+	// Hydra modification: StateReceiver contract is not used
+	// s.sidechainBridgeContract = contract.NewContract(
+	// 	ethgo.Address(stateRcvAddr),
+	// 	contractsapi.StateReceiver.Abi,
+	// 	contract.WithProvider(provider),
+	// )
 
 	return s
 }

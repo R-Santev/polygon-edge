@@ -1,12 +1,10 @@
 package statesyncrelayer
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/0xPolygon/polygon-edge/contracts"
 	"github.com/0xPolygon/polygon-edge/txrelayer"
-	"github.com/0xPolygon/polygon-edge/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -43,36 +41,37 @@ func (t *txRelayerMock) Client() *jsonrpc.Client {
 	return nil
 }
 
-func Test_executeStateSync(t *testing.T) {
-	t.Parallel()
+// Hydra Modify: Unused logic
+// func Test_executeStateSync(t *testing.T) {
+// 	t.Parallel()
 
-	txRelayer := &txRelayerMock{}
-	key, _ := wallet.GenerateKey()
+// 	txRelayer := &txRelayerMock{}
+// 	key, _ := wallet.GenerateKey()
 
-	r := &StateSyncRelayer{
-		txRelayer: txRelayer,
-		key:       key,
-	}
+// 	r := &StateSyncRelayer{
+// 		txRelayer: txRelayer,
+// 		key:       key,
+// 	}
 
-	txRelayer.On("SendTransaction", mock.Anything, mock.Anything).
-		Return(&ethgo.Receipt{Status: uint64(types.ReceiptSuccess)}, nil).Once()
+// 	txRelayer.On("SendTransaction", mock.Anything, mock.Anything).
+// 		Return(&ethgo.Receipt{Status: uint64(types.ReceiptSuccess)}, nil).Once()
 
-	proof := &types.Proof{
-		Data: []types.Hash{},
-		Metadata: map[string]interface{}{
-			"StateSync": map[string]interface{}{
-				"ID":       big.NewInt(1),
-				"Sender":   types.ZeroAddress,
-				"Receiver": types.ZeroAddress,
-				"Data":     []byte{},
-			},
-		},
-	}
+// 	proof := &types.Proof{
+// 		Data: []types.Hash{},
+// 		Metadata: map[string]interface{}{
+// 			"StateSync": map[string]interface{}{
+// 				"ID":       big.NewInt(1),
+// 				"Sender":   types.ZeroAddress,
+// 				"Receiver": types.ZeroAddress,
+// 				"Data":     []byte{},
+// 			},
+// 		},
+// 	}
 
-	require.NoError(t, r.executeStateSync(proof))
+// 	require.NoError(t, r.executeStateSync(proof))
 
-	txRelayer.AssertExpectations(t)
-}
+// 	txRelayer.AssertExpectations(t)
+// }
 
 // Test sanitizeRPCEndpoint
 func Test_sanitizeRPCEndpoint(t *testing.T) {

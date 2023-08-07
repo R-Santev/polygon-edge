@@ -350,7 +350,7 @@ func (t *Transition) Write(txn *types.Transaction) error {
 	msg := txn.Copy()
 
 	result, e := t.Apply(msg)
-	if result.Reverted() {
+	if result != nil && result.Reverted() {
 		unpackedRevert, _ := abi.UnpackRevertError(result.ReturnValue)
 		t.logger.Debug("the call has reverted. Revert msg:", unpackedRevert, "Error: ", e)
 	}
