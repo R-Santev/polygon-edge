@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	// safe numbers for the test
+	// Hydra modification: These are the minimal values that the ValidatorSet contract accept
 	minStake      = 1e18
 	minDelegation = 1e18
 
@@ -32,6 +32,7 @@ func initValidatorSet(polyBFTConfig PolyBFTConfig, transition *state.Transition)
 		initialValidators[i] = validatorData
 	}
 
+	// Hydra TODO: minStake and minDelegation passed to the contract can be parametrized on a later stage
 	initFn := &contractsapi.InitializeValidatorSetFn{
 		Init: &contractsapi.InitStruct{
 			EpochReward:   new(big.Int).SetUint64(polyBFTConfig.EpochReward),
