@@ -1,6 +1,5 @@
 package e2e
 
-// Hydra modify: Bridge is not used in our implementation, so the tests are removed
 // import (
 // 	"encoding/hex"
 // 	"fmt"
@@ -17,6 +16,7 @@ package e2e
 // 	"github.com/0xPolygon/polygon-edge/command"
 // 	"github.com/0xPolygon/polygon-edge/command/bridge/common"
 // 	"github.com/0xPolygon/polygon-edge/command/genesis"
+// 	rootHelper "github.com/0xPolygon/polygon-edge/command/rootchain/helper"
 // 	"github.com/0xPolygon/polygon-edge/command/sidechain"
 // 	"github.com/0xPolygon/polygon-edge/consensus/polybft"
 // 	"github.com/0xPolygon/polygon-edge/consensus/polybft/contractsapi"
@@ -223,7 +223,7 @@ package e2e
 // 		require.NoError(t, err)
 
 // 		// wait for next sprint block as the starting point,
-// 		// in order to be able to make assertions against blocks offseted by sprints
+// 		// in order to be able to make assertions against blocks offsetted by sprints
 // 		initialBlockNum = initialBlockNum + sprintSize - (initialBlockNum % sprintSize)
 // 		require.NoError(t, cluster.WaitForBlock(initialBlockNum, 1*time.Minute))
 

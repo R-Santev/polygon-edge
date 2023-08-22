@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sort"
 
-	"github.com/0xPolygon/polygon-edge/helper/common"
+	"github.com/0xPolygon/polygon-edge/forkmanager"
 	"github.com/0xPolygon/polygon-edge/types"
 )
 
@@ -78,15 +78,17 @@ func (p *Params) GetEngine() string {
 
 // predefined forks
 const (
-	Homestead      = "homestead"
-	Byzantium      = "byzantium"
-	Constantinople = "constantinople"
-	Petersburg     = "petersburg"
-	Istanbul       = "istanbul"
-	London         = "london"
-	EIP150         = "EIP150"
-	EIP158         = "EIP158"
-	EIP155         = "EIP155"
+	Homestead           = "homestead"
+	Byzantium           = "byzantium"
+	Constantinople      = "constantinople"
+	Petersburg          = "petersburg"
+	Istanbul            = "istanbul"
+	London              = "london"
+	EIP150              = "EIP150"
+	EIP158              = "EIP158"
+	EIP155              = "EIP155"
+	QuorumCalcAlignment = "quorumcalcalignment"
+	TxHashWithType      = "txHashWithType"
 )
 
 // Forks is map which contains all forks and their starting blocks from genesis
@@ -111,39 +113,23 @@ func (f *Forks) RemoveFork(name string) {
 // At returns ForksInTime instance that shows which supported forks are enabled for the block
 func (f *Forks) At(block uint64) ForksInTime {
 	return ForksInTime{
-		Homestead:      f.IsActive(Homestead, block),
-		Byzantium:      f.IsActive(Byzantium, block),
-		Constantinople: f.IsActive(Constantinople, block),
-		Petersburg:     f.IsActive(Petersburg, block),
-		Istanbul:       f.IsActive(Istanbul, block),
-		London:         f.IsActive(London, block),
-		EIP150:         f.IsActive(EIP150, block),
-		EIP158:         f.IsActive(EIP158, block),
-		EIP155:         f.IsActive(EIP155, block),
+		Homestead:           f.IsActive(Homestead, block),
+		Byzantium:           f.IsActive(Byzantium, block),
+		Constantinople:      f.IsActive(Constantinople, block),
+		Petersburg:          f.IsActive(Petersburg, block),
+		Istanbul:            f.IsActive(Istanbul, block),
+		London:              f.IsActive(London, block),
+		EIP150:              f.IsActive(EIP150, block),
+		EIP158:              f.IsActive(EIP158, block),
+		EIP155:              f.IsActive(EIP155, block),
+		QuorumCalcAlignment: f.IsActive(QuorumCalcAlignment, block),
+		TxHashWithType:      f.IsActive(TxHashWithType, block),
 	}
 }
 
-// ForkParams hard-coded fork params
-type ForkParams struct {
-	// MaxValidatorSetSize indicates the maximum size of validator set
-	MaxValidatorSetSize *uint64 `json:"maxValidatorSetSize,omitempty"`
-
-	// EpochSize is size of epoch
-	EpochSize *uint64 `json:"epochSize,omitempty"`
-
-	// SprintSize is size of sprint
-	SprintSize *uint64 `json:"sprintSize,omitempty"`
-
-	// BlockTime is target frequency of blocks production
-	BlockTime *common.Duration `json:"blockTime,omitempty"`
-
-	// BlockTimeDrift defines the time slot in which a new block can be created
-	BlockTimeDrift *uint64 `json:"blockTimeDrift,omitempty"`
-}
-
 type Fork struct {
-	Block  uint64      `json:"block"`
-	Params *ForkParams `json:"params,omitempty"`
+	Block  uint64                  `json:"block"`
+	Params *forkmanager.ForkParams `json:"params,omitempty"`
 }
 
 func NewFork(n uint64) Fork {
@@ -164,18 +150,22 @@ type ForksInTime struct {
 	London,
 	EIP150,
 	EIP158,
-	EIP155 bool
+	EIP155,
+	QuorumCalcAlignment,
+	TxHashWithType bool
 }
 
 // AllForksEnabled should contain all supported forks by current edge version
 var AllForksEnabled = &Forks{
-	Homestead:      NewFork(0),
-	EIP150:         NewFork(0),
-	EIP155:         NewFork(0),
-	EIP158:         NewFork(0),
-	Byzantium:      NewFork(0),
-	Constantinople: NewFork(0),
-	Petersburg:     NewFork(0),
-	Istanbul:       NewFork(0),
-	London:         NewFork(0),
+	Homestead:           NewFork(0),
+	EIP150:              NewFork(0),
+	EIP155:              NewFork(0),
+	EIP158:              NewFork(0),
+	Byzantium:           NewFork(0),
+	Constantinople:      NewFork(0),
+	Petersburg:          NewFork(0),
+	Istanbul:            NewFork(0),
+	London:              NewFork(0),
+	QuorumCalcAlignment: NewFork(0),
+	TxHashWithType:      NewFork(0),
 }

@@ -151,14 +151,26 @@ var (
 // 	})
 // 	require.NoError(t, err)
 
-// 	exitData2, err := erc20DataType.Encode(map[string]interface{}{
-// 		"withdrawSignature": widthdrawSig,
-// 		"rootToken":         ethgo.Address(rootERC20Addr),
-// 		"withdrawer":        ethgo.Address(senderAddress),
-// 		"receiver":          ethgo.Address(receiverAddr),
-// 		"amount":            amount2,
-// 	})
-// 	require.NoError(t, err)
+// exits := []*ExitEvent{
+// 	{
+// 		L2StateSyncedEvent: &contractsapi.L2StateSyncedEvent{
+// 			ID:       big.NewInt(1),
+// 			Sender:   contracts.ChildERC20PredicateContract,
+// 			Receiver: rootERC20PredicateAddr,
+// 			Data:     exitData1,
+// 		},
+// 	},
+// 	{
+// 		L2StateSyncedEvent: &contractsapi.L2StateSyncedEvent{
+// 			ID:       big.NewInt(2),
+// 			Sender:   contracts.ChildERC20PredicateContract,
+// 			Receiver: rootERC20PredicateAddr,
+// 			Data:     exitData2,
+// 		},
+// 	},
+// }
+// exitTree, err := createExitTree(exits)
+// require.NoError(t, err)
 
 // 	exits := []*ExitEvent{
 // 		{
@@ -222,9 +234,9 @@ var (
 // 	require.NoError(t, result.Err)
 // 	require.Equal(t, getField(checkpointManagerAddr, contractsapi.CheckpointManager.Abi, "currentCheckpointBlockNumber")[31], uint8(1))
 
-// 	// check that the exit hasn't performed
-// 	res := getField(exitHelperContractAddress, contractsapi.ExitHelper.Abi, "processedExits", exits[0].ID)
-// 	require.Equal(t, 0, int(res[31]))
+// var exitEventAPI contractsapi.L2StateSyncedEvent
+// proofExitEvent, err := exitEventAPI.Encode(exits[0].L2StateSyncedEvent)
+// require.NoError(t, err)
 
 // 	var exitEventAPI contractsapi.L2StateSyncedEvent
 // 	proofExitEvent, err := exitEventAPI.Encode(exits[0])
@@ -318,7 +330,6 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 			// create validator data for polybft config
 			initValidators[i] = &validator.GenesisValidator{
 				Address:      val.Address,
-				Balance:      val.VotingPower,
 				BlsKey:       hex.EncodeToString(val.BlsKey.Marshal()),
 				BlsSignature: hex.EncodeToString(signatureBytes),
 			}

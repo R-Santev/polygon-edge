@@ -226,7 +226,7 @@ func TestStateSyncManager_BuildCommitment(t *testing.T) {
 	s.validatorSet = vals.ToValidatorSet()
 
 	// commitment is empty
-	commitment, err := s.Commitment()
+	commitment, err := s.Commitment(1)
 	require.NoError(t, err)
 	require.Nil(t, commitment)
 
@@ -260,7 +260,7 @@ func TestStateSyncManager_BuildCommitment(t *testing.T) {
 	require.NoError(t, s.saveVote(signedMsg1))
 	require.NoError(t, s.saveVote(signedMsg2))
 
-	commitment, err = s.Commitment()
+	commitment, err = s.Commitment(1)
 	require.NoError(t, err) // there is no error if quorum is not met, since its a valid case
 	require.Nil(t, commitment)
 
@@ -275,7 +275,7 @@ func TestStateSyncManager_BuildCommitment(t *testing.T) {
 	require.NoError(t, s.saveVote(signedMsg1))
 	require.NoError(t, s.saveVote(signedMsg2))
 
-	commitment, err = s.Commitment()
+	commitment, err = s.Commitment(1)
 	require.NoError(t, err)
 	require.NotNil(t, commitment)
 }
@@ -303,7 +303,7 @@ func TestStateSyncManager_BuildCommitment(t *testing.T) {
 // 	txData, err := mockMsg.EncodeAbi()
 // 	require.NoError(t, err)
 
-// 	tx := createStateTransactionWithData(types.Address{}, txData, nil)
+// tx := createStateTransactionWithData(1, types.Address{}, txData)
 
 // 	req := &PostBlockRequest{
 // 		FullBlock: &types.FullBlock{
@@ -334,7 +334,7 @@ func TestStateSyncerManager_AddLog_BuildCommitments(t *testing.T) {
 		s := newTestStateSyncManager(t, vals.GetValidator("0"), &mockRuntime{isActiveValidator: true})
 
 		// empty log which is not an state sync
-		s.AddLog(&ethgo.Log{})
+		require.NoError(t, s.AddLog(&ethgo.Log{}))
 		stateSyncs, err := s.state.StateSyncStore.list()
 
 		require.NoError(t, err)
@@ -345,7 +345,7 @@ func TestStateSyncerManager_AddLog_BuildCommitments(t *testing.T) {
 		stateSyncEventID := stateSyncedEvent.Sig()
 
 		// log with the state sync topic but incorrect content
-		s.AddLog(&ethgo.Log{Topics: []ethgo.Hash{stateSyncEventID}})
+		require.Error(t, s.AddLog(&ethgo.Log{Topics: []ethgo.Hash{stateSyncEventID}}))
 		stateSyncs, err = s.state.StateSyncStore.list()
 
 		require.NoError(t, err)
@@ -365,7 +365,7 @@ func TestStateSyncerManager_AddLog_BuildCommitments(t *testing.T) {
 			Data: data,
 		}
 
-		s.AddLog(goodLog)
+		require.NoError(t, s.AddLog(goodLog))
 
 		stateSyncs, err = s.state.StateSyncStore.getStateSyncEventsForCommitment(0, 0)
 		require.NoError(t, err)
@@ -377,7 +377,7 @@ func TestStateSyncerManager_AddLog_BuildCommitments(t *testing.T) {
 		// add one more log to have a minimum commitment
 		goodLog2 := goodLog.Copy()
 		goodLog2.Topics[1] = ethgo.BytesToHash([]byte{0x1}) // state sync index 1
-		s.AddLog(goodLog2)
+		require.NoError(t, s.AddLog(goodLog2))
 
 		require.Len(t, s.pendingCommitments, 2)
 		require.Equal(t, uint64(0), s.pendingCommitments[1].StartID.Uint64())
@@ -386,11 +386,11 @@ func TestStateSyncerManager_AddLog_BuildCommitments(t *testing.T) {
 		// add two more logs to have larger commitments
 		goodLog3 := goodLog.Copy()
 		goodLog3.Topics[1] = ethgo.BytesToHash([]byte{0x2}) // state sync index 2
-		s.AddLog(goodLog3)
+		require.NoError(t, s.AddLog(goodLog3))
 
 		goodLog4 := goodLog.Copy()
 		goodLog4.Topics[1] = ethgo.BytesToHash([]byte{0x3}) // state sync index 3
-		s.AddLog(goodLog4)
+		require.NoError(t, s.AddLog(goodLog4))
 
 		require.Len(t, s.pendingCommitments, 4)
 		require.Equal(t, uint64(0), s.pendingCommitments[3].StartID.Uint64())
@@ -418,7 +418,7 @@ func TestStateSyncerManager_AddLog_BuildCommitments(t *testing.T) {
 			Data: data,
 		}
 
-		s.AddLog(goodLog)
+		require.NoError(t, s.AddLog(goodLog))
 
 		// node should have inserted given state sync event, but it shouldn't build any commitment
 		stateSyncs, err := s.state.StateSyncStore.getStateSyncEventsForCommitment(0, 0)

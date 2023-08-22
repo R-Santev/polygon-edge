@@ -178,7 +178,6 @@ func (v *TestValidator) ParamsValidator() *GenesisValidator {
 		Address:      v.Address(),
 		BlsKey:       hex.EncodeToString(blskey),
 		BlsSignature: hex.EncodeToString(signatureBytes),
-		Balance:      big.NewInt(1000),
 		Stake:        big.NewInt(1000),
 	}
 }

@@ -59,6 +59,7 @@ type stakeManager struct {
 	// supernetManagerContract types.Address
 	maxValidatorSetSize int
 	blockchain          blockchainBackend
+	eventsGetter        *eventsGetter[*contractsapi.TransferEvent]
 }
 
 // newStakeManager returns a new instance of stake manager
@@ -70,6 +71,19 @@ func newStakeManager(
 	maxValidatorSetSize int,
 	blockchain blockchainBackend,
 ) *stakeManager {
+	eventsGetter := &eventsGetter[*contractsapi.TransferEvent]{
+		blockchain: blockchain,
+		isValidLogFn: func(l *types.Log) bool {
+			return l.Address == validatorSetAddr
+		},
+		parseEventFn: func(h *types.Header, l *ethgo.Log) (*contractsapi.TransferEvent, bool, error) {
+			var transferEvent contractsapi.TransferEvent
+			doesMatch, err := transferEvent.ParseLog(l)
+
+			return &transferEvent, doesMatch, err
+		},
+	}
+
 	return &stakeManager{
 		logger: logger,
 		state:  state,
@@ -79,6 +93,7 @@ func newStakeManager(
 		// supernetManagerContract: supernetManagerAddr,
 		maxValidatorSetSize: maxValidatorSetSize,
 		blockchain:          blockchain,
+		eventsGetter:        eventsGetter,
 	}
 }
 
@@ -97,6 +112,7 @@ func (s *stakeManager) PostEpoch(req *PostEpochRequest) error {
 	})
 }
 
+// Hydra TODO: Modify mechanism to be as similar as possible to the Polygon's one
 // PostBlock is called on every insert of finalized block (either from consensus or syncer)
 // It will read any transfer event that happened in block and update full validator set in db
 func (s *stakeManager) PostBlock(req *PostBlockRequest) error {
@@ -157,10 +173,12 @@ func (s *stakeManager) PostBlock(req *PostBlockRequest) error {
 
 	for addr, data := range fullValidatorSet.Validators {
 		if data.BlsKey == nil {
-			data.BlsKey, err = s.getBlsKey(data.Address)
+			blsKey, err := s.getBlsKey(data.Address)
 			if err != nil {
 				s.logger.Warn("Could not get info for new validator", "epoch", req.Epoch, "address", addr)
 			}
+
+			data.BlsKey = blsKey
 		}
 
 		// H_MODIFY: IsActive is properly handled in setStake
@@ -249,6 +267,34 @@ func (s *stakeManager) UpdateValidatorSet(
 	return delta, nil
 }
 
+// getBlsKey returns bls key for validator from the supernet contract
+// Hydra modification: getBlsKey returns bls key for validator from the childValidatorSet contract
+func (s *stakeManager) getBlsKey(address types.Address) (*bls.PublicKey, error) {
+	header := s.blockchain.CurrentHeader()
+	systemState, err := s.getSystemState(header)
+	if err != nil {
+		return nil, err
+	}
+
+	blsKey, err := systemState.GetValidatorBlsKey(address)
+	if err != nil {
+		return nil, err
+	}
+
+	return blsKey, nil
+}
+
+func (s *stakeManager) getSystemState(block *types.Header) (SystemState, error) {
+	header := s.blockchain.CurrentHeader()
+	provider, err := s.blockchain.GetStateProviderForBlock(header)
+	if err != nil {
+		return nil, err
+	}
+
+	systemState := s.blockchain.GetSystemState(provider)
+	return systemState, nil
+}
+
 // getTransferEventsFromReceipts parses logs from receipts to find transfer events
 func (s *stakeManager) getTransferEventsFromReceipts(receipts []*types.Receipt) ([]*contractsapi.TransferEvent, error) {
 	events := make([]*contractsapi.TransferEvent, 0)
@@ -279,33 +325,6 @@ func (s *stakeManager) getTransferEventsFromReceipts(receipts []*types.Receipt) 
 	}
 
 	return events, nil
-}
-
-// H_MODIFY: getBlsKey returns bls key for validator from the childValidatorSet contract
-func (s *stakeManager) getBlsKey(address types.Address) (*bls.PublicKey, error) {
-	header := s.blockchain.CurrentHeader()
-	systemState, err := s.getSystemState(header)
-	if err != nil {
-		return nil, err
-	}
-
-	blsKey, err := systemState.GetValidatorBlsKey(address)
-	if err != nil {
-		return nil, err
-	}
-
-	return blsKey, nil
-}
-
-func (s *stakeManager) getSystemState(block *types.Header) (SystemState, error) {
-	header := s.blockchain.CurrentHeader()
-	provider, err := s.blockchain.GetStateProviderForBlock(header)
-	if err != nil {
-		return nil, err
-	}
-
-	systemState := s.blockchain.GetSystemState(provider)
-	return systemState, nil
 }
 
 type validatorSetState struct {

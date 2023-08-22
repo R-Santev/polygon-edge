@@ -147,11 +147,13 @@ func FuzzTestStakeManagerPostBlock(f *testing.F) {
 			t.Skip()
 		}
 
+		validatorSetAddr := types.StringToAddress("0x0001")
+
 		stakeManager := newStakeManager(
 			hclog.NewNullLogger(),
 			state,
 			wallet.NewEcdsaSigner(validators.GetValidator("A").Key()),
-			types.StringToAddress("0x0001"),
+			types.StringToAddress("0x0002"),
 			5,
 			nil,
 		)
@@ -165,7 +167,7 @@ func FuzzTestStakeManagerPostBlock(f *testing.F) {
 			Logs: []*types.Log{
 				createTestLogForTransferEvent(
 					t,
-					stakeManager.validatorSetContract,
+					validatorSetAddr,
 					validators.GetValidator(initialSetAliases[data.ValidatorID]).Address(),
 					types.ZeroAddress,
 					data.StakeValue,

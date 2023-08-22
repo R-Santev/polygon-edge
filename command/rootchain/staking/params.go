@@ -37,8 +37,8 @@ package staking
 // }
 
 // type stakeResult struct {
-// 	validatorAddress string
-// 	amount           *big.Int
+// 	validatorAddress string   `json:"validatorAddress"`
+// 	amount           *big.Int `json:"amount"`
 // }
 
 // func (sr stakeResult) GetOutput() string {

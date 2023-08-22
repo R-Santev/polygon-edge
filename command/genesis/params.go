@@ -145,6 +145,10 @@ func (p *genesisParams) validateFlags() error {
 		return errValidatorsNotSpecified
 	}
 
+	if err := p.parsePremineInfo(); err != nil {
+		return err
+	}
+
 	if p.isPolyBFTConsensus() {
 		if err := p.extractNativeTokenMetadata(); err != nil {
 			return err
@@ -158,9 +162,10 @@ func (p *genesisParams) validateFlags() error {
 			return err
 		}
 
-		if err := p.validatePremineInfo(); err != nil {
-			return err
-		}
+		// Hydra modification: We don't need a reserve account premining, we use the 0x0 address for burning
+		// if err := p.validatePremineInfo(); err != nil {
+		// 	return err
+		// }
 	}
 
 	// Check if the genesis file already exists
@@ -478,10 +483,9 @@ func (p *genesisParams) validateRewardWallet() error {
 	return nil
 }
 
-// validatePremineInfo validates whether reserve account (0x0 address) is premined
-func (p *genesisParams) validatePremineInfo() error {
+// parsePremineInfo parses premine flag
+func (p *genesisParams) parsePremineInfo() error {
 	p.premineInfos = make([]*premineInfo, 0, len(p.premine))
-	isReserveAccPremined := false
 
 	for _, premine := range p.premine {
 		premineInfo, err := parsePremineInfo(premine)
@@ -490,19 +494,21 @@ func (p *genesisParams) validatePremineInfo() error {
 		}
 
 		p.premineInfos = append(p.premineInfos, premineInfo)
-
-		if premineInfo.address == types.ZeroAddress {
-			isReserveAccPremined = true
-		}
-	}
-
-	// Hydra modification: We don't need a reserve account premining, we use the 0x0 address for burning
-	// if !isReserveAccPremined {
-	if isReserveAccPremined {
-		return errReserveAccMustBePremined
 	}
 
 	return nil
+}
+
+// validatePremineInfo validates whether reserve account (0x0 address) is premined
+func (p *genesisParams) validatePremineInfo() error {
+	for _, premineInfo := range p.premineInfos {
+		if premineInfo.address == types.ZeroAddress {
+			// we have premine of zero address, just return
+			return nil
+		}
+	}
+
+	return errReserveAccMustBePremined
 }
 
 // validateBurnContract validates burn contract. If native token is mintable,

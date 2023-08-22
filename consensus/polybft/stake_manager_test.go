@@ -64,6 +64,7 @@ func TestStakeManager_PostBlock(t *testing.T) {
 		firstValidator    = uint64(0)
 		secondValidator   = uint64(1)
 		oneCoin           = new(big.Int).Mul(big.NewInt(1e18), big.NewInt(1))
+		validatorSetAddr  = types.StringToAddress("0x0001")
 	)
 
 	systemStateMockVar := new(systemStateMock)
@@ -99,7 +100,7 @@ func TestStakeManager_PostBlock(t *testing.T) {
 			hclog.NewNullLogger(),
 			state,
 			wallet.NewEcdsaSigner(validators.GetValidator("A").Key()),
-			types.StringToAddress("0x0001"),
+			types.StringToAddress("0x0002"),
 			5,
 			bcMock,
 		)
@@ -114,7 +115,7 @@ func TestStakeManager_PostBlock(t *testing.T) {
 			Logs: []*types.Log{
 				createTestLogForTransferEvent(
 					t,
-					stakeManager.validatorSetContract,
+					validatorSetAddr,
 					validators.GetValidator(initialSetAliases[firstValidator]).Address(),
 					types.ZeroAddress,
 					15000, // initial validator stake was 15000
@@ -169,7 +170,7 @@ func TestStakeManager_PostBlock(t *testing.T) {
 			Logs: []*types.Log{
 				createTestLogForTransferEvent(
 					t,
-					stakeManager.validatorSetContract,
+					validatorSetAddr,
 					types.ZeroAddress,
 					validators.GetValidator(initialSetAliases[secondValidator]).Address(),
 					250,
@@ -235,7 +236,7 @@ func TestStakeManager_PostBlock(t *testing.T) {
 			receipts[i] = &types.Receipt{Logs: []*types.Log{
 				createTestLogForTransferEvent(
 					t,
-					stakeManager.validatorSetContract,
+					validatorSetAddr,
 					types.ZeroAddress,
 					validators.GetValidator(allAliases[i]).Address(),
 					newStake,
@@ -288,7 +289,7 @@ func TestStakeManager_PostBlock(t *testing.T) {
 		receipt.Logs = []*types.Log{
 			createTestLogForTransferEvent(
 				t,
-				stakeManager.validatorSetContract,
+				validatorSetAddr,
 				types.ZeroAddress,
 				validators.GetValidator(initialSetAliases[secondValidator]).Address(),
 				250,
@@ -307,16 +308,16 @@ func TestStakeManager_PostBlock(t *testing.T) {
 
 		fullValidatorSet, err := state.StakeStore.getFullValidatorSet()
 		require.NoError(t, err)
-		var firstValidaotor *validator.ValidatorMetadata
-		firstValidaotor = nil
+		var updatedValidator *validator.ValidatorMetadata
+		updatedValidator = nil
 		for _, validator := range fullValidatorSet.Validators {
 			if validator.Address.String() == validators.GetValidator(initialSetAliases[secondValidator]).Address().String() {
-				firstValidaotor = validator
+				updatedValidator = validator
 			}
 		}
-		require.NotNil(t, firstValidaotor)
-		require.Equal(t, big.NewInt(1), firstValidaotor.VotingPower)
-		require.True(t, firstValidaotor.IsActive)
+		require.NotNil(t, updatedValidator)
+		require.Equal(t, big.NewInt(1), updatedValidator.VotingPower)
+		require.True(t, updatedValidator.IsActive)
 
 		blockchainMockVar.AssertExpectations(t)
 	})

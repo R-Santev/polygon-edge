@@ -15,6 +15,7 @@ import (
 	bls "github.com/0xPolygon/polygon-edge/consensus/polybft/signer"
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/validator"
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/wallet"
+	"github.com/0xPolygon/polygon-edge/forkmanager"
 	"github.com/0xPolygon/polygon-edge/helper/common"
 	"github.com/0xPolygon/polygon-edge/helper/progress"
 	"github.com/0xPolygon/polygon-edge/network"
@@ -77,7 +78,7 @@ type Polybft struct {
 	// state is reference to the struct which encapsulates consensus data persistence logic
 	state *State
 
-	// consensus parametres
+	// consensus parameters
 	config *consensus.Params
 
 	// consensusConfig is genesis configuration for polybft consensus protocol
@@ -463,13 +464,13 @@ func (p *Polybft) Initialize() error {
 	return nil
 }
 
-func ForkManagerInitialParamsFactory(config *chain.Chain) (*chain.ForkParams, error) {
+func ForkManagerInitialParamsFactory(config *chain.Chain) (*forkmanager.ForkParams, error) {
 	pbftConfig, err := GetPolyBFTConfig(config)
 	if err != nil {
 		return nil, err
 	}
 
-	return &chain.ForkParams{
+	return &forkmanager.ForkParams{
 		MaxValidatorSetSize: &pbftConfig.MaxValidatorSetSize,
 		EpochSize:           &pbftConfig.EpochSize,
 		SprintSize:          &pbftConfig.SprintSize,
@@ -599,7 +600,7 @@ func (p *Polybft) startConsensusProtocol() {
 		p.txPool.SetSealing(isValidator) // update tx pool
 
 		if isValidator {
-			// initialze FSM as a stateless ibft backend via runtime as an adapter
+			// initialize FSM as a stateless ibft backend via runtime as an adapter
 			err = p.runtime.FSM()
 			if err != nil {
 				p.logger.Error("failed to create fsm", "block number", latestHeader.Number, "error", err)
@@ -751,6 +752,7 @@ func (p *Polybft) PreCommitState(block *types.Block, _ *state.Transition) error 
 			commitmentTxExists = true
 
 			if err := verifyBridgeCommitmentTx(
+				block.Number(),
 				tx.Hash,
 				signedCommitment,
 				validator.NewValidatorSet(validators, p.logger)); err != nil {
