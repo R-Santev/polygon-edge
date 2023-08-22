@@ -10,9 +10,8 @@
 # cd ./..
 
 # delete specified directories in test-chain-1, test-chain-2, test-chain-3, and test-chain-4
-for i in 1 2 3 4
-do
-    rm -rf ./test-chain-$i/blockchain
-    rm -rf ./test-chain-$i/consensus/polybft
-    rm -rf ./test-chain-$i/trie
+for i in 1 2 3 4 5; do
+  rm -rf ./test-chain-$i/blockchain
+  rm -rf ./test-chain-$i/consensus/polybft
+  rm -rf ./test-chain-$i/trie
 done

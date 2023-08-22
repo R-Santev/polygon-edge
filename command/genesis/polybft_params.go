@@ -329,12 +329,12 @@ func (p *genesisParams) deployContracts(
 	}
 
 	genesisContracts := []*contractInfo{
-		{
-			// State receiver contract
-			artifact: contractsapi.StateReceiver,
-			address:  contracts.StateReceiverContract,
-		},
-		// H_MODIFY: Unused contracts
+		// Hydra modification: Unused contracts
+		// {
+		// State receiver contract
+		// artifact: contractsapi.StateReceiver,
+		// address:  contracts.StateReceiverContract,
+		// },
 		// {
 		// 	// ChildERC20 token contract
 		// 	artifact: contractsapi.ChildERC20,
@@ -360,16 +360,16 @@ func (p *genesisParams) deployContracts(
 			artifact: contractsapi.Merkle,
 			address:  contracts.MerkleContract,
 		},
-		{
-			// L2StateSender contract
-			artifact: contractsapi.L2StateSender,
-			address:  contracts.L2StateSenderContract,
-		},
+		// {
+		// 	// L2StateSender contract
+		// 	artifact: contractsapi.L2StateSender,
+		// 	address:  contracts.L2StateSenderContract,
+		// },
 		{
 			artifact: contractsapi.ValidatorSet,
 			address:  contracts.ValidatorSetContract,
 		},
-		// H_MODIFY: Unused contracts
+		// Hydra modification: Unused contracts
 		// {
 		// 	artifact: contractsapi.RewardPool,
 		// 	address:  contracts.RewardPoolContract,
@@ -560,8 +560,8 @@ func (p *genesisParams) getValidatorAccounts(
 	}
 
 	for _, v := range validators {
-		v.Balance = getPremineAmount(v.Address, premineBalances, big.NewInt(0))
-		v.Stake = big.NewInt(0)
+		v.Balance = getPremineAmount(v.Address, premineBalances, command.DefaultPremineBalance)
+		v.Stake = getPremineAmount(v.Address, premineBalances, command.DefaultStake)
 	}
 
 	return validators, nil

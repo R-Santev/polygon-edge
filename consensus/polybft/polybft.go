@@ -137,10 +137,11 @@ func GenesisPostHookFactory(config *chain.Chain, engineName string) func(txn *st
 			initialTotalSupply.Add(initialTotalSupply, alloc.Balance)
 		}
 
-		bridgeCfg := polyBFTConfig.Bridge
-		if bridgeCfg == nil {
-			return errMissingBridgeConfig
-		}
+		// Hydra modification: we don't use the bridge and the root chain dependency
+		// bridgeCfg := polyBFTConfig.Bridge
+		// if bridgeCfg == nil {
+		// 	return errMissingBridgeConfig
+		// }
 
 		// initialize ValidatorSet SC
 		if err = initValidatorSet(polyBFTConfig, transition); err != nil {

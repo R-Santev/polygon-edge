@@ -13,7 +13,7 @@ CGO_ENABLED=0 GOOS=darwin GOARCH=arm64  go build -o polygon-edge -a -installsuff
 2. Linux
 
 ```
-CGO_ENABLED=0 GOOS=linux go build -o polygon-edge -a -installsuffix cgo  main.go
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o polygon-edge -a -installsuffix cgo  main.go
 ```
 
 ## Move to path

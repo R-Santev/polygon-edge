@@ -496,7 +496,9 @@ func (p *genesisParams) validatePremineInfo() error {
 		}
 	}
 
-	if !isReserveAccPremined {
+	// Hydra modification: We don't need a reserve account premining, we use the 0x0 address for burning
+	// if !isReserveAccPremined {
+	if isReserveAccPremined {
 		return errReserveAccMustBePremined
 	}
 
