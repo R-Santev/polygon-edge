@@ -36,15 +36,17 @@ func Test_initKeys(t *testing.T) {
 
 	assert.False(t, fileExists(path.Join(dir, "consensus/validator.key")))
 	assert.False(t, fileExists(path.Join(dir, "consensus/validator-bls.key")))
+	assert.False(t, fileExists(path.Join(dir, "consensus/validator.sig")))
 	assert.False(t, fileExists(path.Join(dir, "libp2p/libp2p.key")))
 
 	ip.generatesAccount = true
 	res, err := ip.initKeys(sm)
 	require.NoError(t, err)
-	assert.Len(t, res, 2)
+	assert.Len(t, res, 3)
 
 	assert.True(t, fileExists(path.Join(dir, "consensus/validator.key")))
 	assert.True(t, fileExists(path.Join(dir, "consensus/validator-bls.key")))
+	assert.True(t, fileExists(path.Join(dir, "consensus/validator.sig")))
 	assert.False(t, fileExists(path.Join(dir, "libp2p/libp2p.key")))
 
 	ip.generatesNetwork = true

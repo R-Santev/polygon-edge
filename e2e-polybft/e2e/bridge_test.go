@@ -27,9 +27,9 @@ package e2e
 // 	"github.com/0xPolygon/polygon-edge/types"
 // )
 
-// const (
-// 	chainConfigFileName = "genesis.json"
-// )
+const (
+	chainConfigFileName = "genesis.json"
+)
 
 // func TestE2E_Bridge_Transfers(t *testing.T) {
 // 	const (

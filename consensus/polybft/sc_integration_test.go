@@ -277,7 +277,7 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 	// number of delegators per validator
 	delegatorsPerValidator := 100
 
-	intialBalance := uint64(5e18) // 5 tokens
+	initialBalance := uint64(5e18) // 5 tokens
 	reward := oneCoin
 	delegateAmount := oneCoin
 
@@ -290,7 +290,7 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 
 		for j := 0; j < size; j++ {
 			aliases[j] = "v" + strconv.Itoa(j)
-			vps[j] = intialBalance
+			vps[j] = initialBalance
 		}
 
 		validatorSets[i] = validator.NewTestValidatorsWithAliases(t, aliases, vps)
@@ -332,6 +332,7 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 				Address:      val.Address,
 				BlsKey:       hex.EncodeToString(val.BlsKey.Marshal()),
 				BlsSignature: hex.EncodeToString(signatureBytes),
+				Stake:        big.NewInt(int64(initialBalance)),
 			}
 
 			// create delegators
@@ -341,7 +342,7 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 			for j := 0; j < delegatorsPerValidator; j++ {
 				delegator := delegatorAccs[j]
 				alloc[types.Address(delegator.Address())] = &chain.GenesisAccount{
-					Balance: new(big.Int).SetUint64(intialBalance),
+					Balance: new(big.Int).SetUint64(initialBalance),
 				}
 			}
 
