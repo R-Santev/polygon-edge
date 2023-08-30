@@ -81,7 +81,7 @@ func TestStakeManager_PostBlock(t *testing.T) {
 		t.Parallel()
 
 		customSystemStateMock := new(systemStateMock)
-		customSystemStateMock.On("GetStakeOnValidatorSet", mock.Anything).Return(big.NewInt(0), nil).Once()
+		customSystemStateMock.On("GetStakeOnValidatorSet", mock.Anything).Return(big.NewInt(0), nil).Twice()
 		customSystemStateMock.On("GetVotingPowerExponent").Return(&BigNumDecimal{Numerator: big.NewInt(8500), Denominator: big.NewInt(10000)}, nil).Maybe()
 
 		bcMock := new(blockchainMock)
@@ -100,7 +100,7 @@ func TestStakeManager_PostBlock(t *testing.T) {
 			hclog.NewNullLogger(),
 			state,
 			wallet.NewEcdsaSigner(validators.GetValidator("A").Key()),
-			types.StringToAddress("0x0002"),
+			types.StringToAddress("0x0001"),
 			5,
 			bcMock,
 		)
@@ -275,7 +275,7 @@ func TestStakeManager_PostBlock(t *testing.T) {
 			hclog.NewNullLogger(),
 			state,
 			wallet.NewEcdsaSigner(validators.GetValidator("A").Key()),
-			types.StringToAddress("0x0002"),
+			types.StringToAddress("0x0001"),
 			5,
 			blockchainMockVar,
 		)

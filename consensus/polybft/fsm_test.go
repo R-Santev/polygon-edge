@@ -494,16 +494,16 @@ func TestFSM_VerifyStateTransactions_EndOfEpochWrongCommitEpochTx(t *testing.T) 
 func TestFSM_VerifyStateTransactions_EndOfEpochWrongCommitEpochTxValue(t *testing.T) {
 	t.Parallel()
 
-	fsm := &fsm{parent: &types.Header{}}
-
-	encodedCommitment, err := createTestCommitmentMessage(t, 1).EncodeAbi()
+	input := createTestCommitEpochInput(t, 0, 10)
+	fsm := &fsm{isEndOfEpoch: true, commitEpochInput: input, commitEpochTxValue: commitEpochTxTestValue, parent: &types.Header{}}
+	encodedInput, err := input.EncodeAbi()
 	require.NoError(t, err)
 
-	value := big.NewInt(1000)
+	differentValue := big.NewInt(10000)
+	commitEpochTx := createStateTransactionWithData(0, contracts.ValidatorSetContract, encodedInput, differentValue)
 
-	tx := createStateTransactionWithData(1, contracts.StateReceiverContract, encodedCommitment, value)
-	assert.ErrorContains(t, fsm.VerifyStateTransactions([]*types.Transaction{tx}),
-		"found commitment tx in block which should not contain it")
+	assert.NotEqual(t, commitEpochTxTestValue, differentValue)
+	assert.ErrorContains(t, fsm.VerifyStateTransactions([]*types.Transaction{commitEpochTx}), "invalid commit epoch transaction")
 }
 
 // H_MODIFY: Removed because test is not valid anymore

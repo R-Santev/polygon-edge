@@ -56,6 +56,15 @@ func main() {
 				"Transfer",
 			},
 		},
+		{
+			"LiquidityToken",
+			gensc.LiquidityToken,
+			false,
+			[]string{
+				"initialize",
+			},
+			[]string{},
+		},
 	}
 
 	generatedData := &generatedData{}

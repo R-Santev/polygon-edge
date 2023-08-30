@@ -27,7 +27,7 @@ I am describing our custom process, because it is different.
 2. Generate genesis file
 
 ```
-./polygon-edge genesis --block-gas-limit 10000000 --epoch-size 10 \ --validators-path ./ --validators-prefix test-chain- --consensus polybft --reward-wallet 0x61324166B0202DB1E7502924326262274Fa4358F:1000000 --chain-id 187
+./polygon-edge genesis --block-gas-limit 10000000 --epoch-size 10 \ --validators-path ./ --validators-prefix test-chain- --consensus polybft --reward-wallet 0x61324166B0202DB1E7502924326262274Fa4358F:1000000 --chain-id 8844
 ```
 
 4. Run the chain

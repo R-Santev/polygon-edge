@@ -40,9 +40,10 @@ func initValidatorSet(polyBFTConfig PolyBFTConfig, transition *state.Transition)
 			MinDelegation: big.NewInt(minDelegation),
 			EpochSize:     new(big.Int).SetUint64(polyBFTConfig.EpochSize),
 		},
-		NewBls:     contracts.BLSContract,
-		Governance: polyBFTConfig.Governance,
-		Validators: initialValidators,
+		NewBls:      contracts.BLSContract,
+		Governance:  polyBFTConfig.Governance,
+		Validators:  initialValidators,
+		LiquidToken: contracts.LiquidityTokenContract,
 	}
 
 	input, err := initFn.EncodeAbi()
@@ -52,6 +53,22 @@ func initValidatorSet(polyBFTConfig PolyBFTConfig, transition *state.Transition)
 
 	return callContract(contracts.SystemCaller,
 		contracts.ValidatorSetContract, input, "ValidatorSet.initialize", transition)
+}
+
+func initLiquidityToken(polyBFTConfig PolyBFTConfig, transition *state.Transition) error {
+	initFn := contractsapi.InitializeLiquidityTokenFn{
+		Name_:            "Liquid Hydra",
+		Symbol_:          "LYDRA",
+		Governer:         polyBFTConfig.Governance,
+		SupplyController: contracts.ValidatorSetContract,
+	}
+
+	input, err := initFn.EncodeAbi()
+	if err != nil {
+		return fmt.Errorf("LiquidityToken.initialize params encoding failed: %w", err)
+	}
+
+	return callContract(contracts.SystemCaller, contracts.LiquidityTokenContract, input, "LiquidityToken.initialize", transition)
 }
 
 // // initRewardPool initializes RewardPool SC

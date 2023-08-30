@@ -317,9 +317,10 @@ func Test_GenesisPostHookFactory(t *testing.T) {
 			},
 		},
 		{
-			name:        "missing bridge configuration",
-			config:      &PolyBFTConfig{},
-			expectedErr: errMissingBridgeConfig,
+			name:   "missing bridge configuration",
+			config: &PolyBFTConfig{},
+			// Hydra modification: We don't need a bridge config
+			// expectedErr: errMissingBridgeConfig,
 		},
 	}
 

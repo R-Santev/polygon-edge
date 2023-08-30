@@ -374,6 +374,10 @@ func (p *genesisParams) deployContracts(
 		// 	artifact: contractsapi.RewardPool,
 		// 	address:  contracts.RewardPoolContract,
 		// },
+		{
+			artifact: contractsapi.LiquidityToken,
+			address:  contracts.LiquidityTokenContract,
+		},
 	}
 
 	// if !params.nativeTokenConfig.IsMintable {

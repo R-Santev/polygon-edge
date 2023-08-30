@@ -69,6 +69,10 @@ func main() {
 			"child/ChildValidatorSet.sol",
 			"ChildValidatorSet",
 		},
+		{
+			"child/LiquidityToken.sol",
+			"LiquidityToken",
+		},
 	}
 
 	for _, v := range readContracts {

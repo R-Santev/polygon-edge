@@ -62,6 +62,7 @@ var (
 	RootERC20              *artifact.Artifact
 	TestSimple             *artifact.Artifact
 	TestRewardToken        *artifact.Artifact
+	LiquidityToken         *artifact.Artifact
 )
 
 func init() {
@@ -280,9 +281,12 @@ func init() {
 	// 	log.Fatal(err)
 	// }
 
-	// H_MODIFY: initialize ChildValidatorSet artifacts
+	// Hydra modification: initialize ChildValidatorSet artifacts
 	ValidatorSet, err = artifact.DecodeArtifact([]byte(ChildValidatorSetArtifact))
 	ChildValidatorSet, err = artifact.DecodeArtifact([]byte(ChildValidatorSetArtifact))
+
+	// H_MODIFY: initialize ChildValidatorSet artifacts
+	LiquidityToken, err = artifact.DecodeArtifact([]byte(LiquidityTokenArtifact))
 }
 
 func readTestContractContent(contractFileName string) []byte {

@@ -109,10 +109,11 @@ func (v *ValidatorInit) DecodeAbi(buf []byte) error {
 }
 
 type InitializeValidatorSetFn struct {
-	Init       *InitStruct      `abi:"init"`
-	Validators []*ValidatorInit `abi:"validators"`
-	NewBls     types.Address    `abi:"newBls"`
-	Governance types.Address    `abi:"governance"`
+	Init        *InitStruct      `abi:"init"`
+	Validators  []*ValidatorInit `abi:"validators"`
+	NewBls      types.Address    `abi:"newBls"`
+	Governance  types.Address    `abi:"governance"`
+	LiquidToken types.Address    `abi:"liquidToken"`
 }
 
 func (i *InitializeValidatorSetFn) Sig() []byte {
@@ -329,4 +330,23 @@ func (t *TransferEvent) ParseLog(log *ethgo.Log) (bool, error) {
 	}
 
 	return true, decodeEvent(ValidatorSet.Abi.Events["Transfer"], log, t)
+}
+
+type InitializeLiquidityTokenFn struct {
+	Name_            string        `abi:"name_"`
+	Symbol_          string        `abi:"symbol_"`
+	Governer         types.Address `abi:"governer"`
+	SupplyController types.Address `abi:"supplyController"`
+}
+
+func (i *InitializeLiquidityTokenFn) Sig() []byte {
+	return LiquidityToken.Abi.Methods["initialize"].ID()
+}
+
+func (i *InitializeLiquidityTokenFn) EncodeAbi() ([]byte, error) {
+	return LiquidityToken.Abi.Methods["initialize"].Encode(i)
+}
+
+func (i *InitializeLiquidityTokenFn) DecodeAbi(buf []byte) error {
+	return decodeMethod(LiquidityToken.Abi.Methods["initialize"], buf, i)
 }

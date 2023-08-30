@@ -310,6 +310,9 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 			contracts.BLSContract: {
 				Code: contractsapi.BLS.DeployedBytecode,
 			},
+			contracts.LiquidityTokenContract: {
+				Code: contractsapi.LiquidityToken.DeployedBytecode,
+			},
 		}
 
 		// validator data for polybft config
@@ -360,8 +363,12 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 			Governance: currentValidators.ToValidatorSet().Accounts().GetAddresses()[0],
 		}
 
+		// init LiquidityToken
+		err := initLiquidityToken(polyBFTConfig, transition)
+		require.NoError(t, err)
+
 		// init ValidatorSet
-		err := initValidatorSet(polyBFTConfig, transition)
+		err = initValidatorSet(polyBFTConfig, transition)
 		require.NoError(t, err)
 
 		// delegate amounts to validators

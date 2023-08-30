@@ -144,6 +144,11 @@ func GenesisPostHookFactory(config *chain.Chain, engineName string) func(txn *st
 		// 	return errMissingBridgeConfig
 		// }
 
+		// initialize Liquidity Token SC
+		if err = initLiquidityToken(polyBFTConfig, transition); err != nil {
+			return err
+		}
+
 		// initialize ValidatorSet SC
 		if err = initValidatorSet(polyBFTConfig, transition); err != nil {
 			return err

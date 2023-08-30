@@ -62,6 +62,7 @@ var (
 	BlockListBridgeAddr = types.StringToAddress("0x0300000000000000000000000000000000000004")
 
 	// Hydra: Additional system contracts and special addresses
-	FeeHandlerContract = types.StringToAddress("0x1009")
-	HydraBurnAddress   = types.StringToAddress("0x0000000000000000000000000000000000000000")
+	FeeHandlerContract     = types.StringToAddress("0x1012")
+	HydraBurnAddress       = types.StringToAddress("0x0000000000000000000000000000000000000000")
+	LiquidityTokenContract = types.StringToAddress("0x1013")
 )
