@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/0xPolygon/polygon-edge/command"
-	"github.com/0xPolygon/polygon-edge/command/bridge/common"
 	"github.com/0xPolygon/polygon-edge/command/helper"
 	"github.com/0xPolygon/polygon-edge/command/polybftsecrets"
 	sidechainHelper "github.com/0xPolygon/polygon-edge/command/sidechain"
@@ -21,8 +20,8 @@ var params withdrawParams
 
 func GetCommand() *cobra.Command {
 	unstakeCmd := &cobra.Command{
-		Use:     "withdraw-child",
-		Short:   "Withdraws pending withdrawals on child chain for given validator",
+		Use:     "withdraw",
+		Short:   "Withdraws pending withdrawals for given validator",
 		PreRunE: runPreRun,
 		RunE:    runCommand,
 	}
@@ -72,7 +71,8 @@ func runCommand(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	encoded, err := contractsapi.ValidatorSet.Abi.Methods["withdraw"].Encode([]interface{}{})
+	withdrawFn := &contractsapi.WithdrawValidatorSetFn{To: (types.Address)(validatorAccount.Ecdsa.Address())}
+	encoded, err := withdrawFn.EncodeAbi()
 	if err != nil {
 		return err
 	}
@@ -115,16 +115,10 @@ func runCommand(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("could not find an appropriate log in receipt that withdraw happened on ValidatorSet")
 	}
 
-	exitEventID, err := common.ExtractExitEventID(receipt)
-	if err != nil {
-		return fmt.Errorf("withdrawal failed: %w", err)
-	}
-
 	outputter.WriteCommandResult(
 		&withdrawResult{
 			ValidatorAddress: validatorAccount.Ecdsa.Address().String(),
 			Amount:           withdrawalEvent.Amount,
-			ExitEventID:      exitEventID,
 			BlockNumber:      receipt.BlockNumber,
 		})
 

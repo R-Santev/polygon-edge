@@ -9,6 +9,7 @@ polygon-edge
 bin/
 
 test-chain*
+test-add-chain*
 test-rootchain*
 polygon-edge-chain*
 .idea

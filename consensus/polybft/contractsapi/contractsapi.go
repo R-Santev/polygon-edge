@@ -161,6 +161,22 @@ func (r *RegisterValidatorSetFn) DecodeAbi(buf []byte) error {
 	return decodeMethod(ValidatorSet.Abi.Methods["register"], buf, r)
 }
 
+type WithdrawValidatorSetFn struct {
+	To types.Address `abi:"to"`
+}
+
+func (w *WithdrawValidatorSetFn) Sig() []byte {
+	return ValidatorSet.Abi.Methods["withdraw"].ID()
+}
+
+func (w *WithdrawValidatorSetFn) EncodeAbi() ([]byte, error) {
+	return ValidatorSet.Abi.Methods["withdraw"].Encode(w)
+}
+
+func (w *WithdrawValidatorSetFn) DecodeAbi(buf []byte) error {
+	return decodeMethod(ValidatorSet.Abi.Methods["withdraw"], buf, w)
+}
+
 type NewValidatorEvent struct {
 	Validator types.Address `abi:"validator"`
 	BlsKey    [4]*big.Int   `abi:"blsKey"`

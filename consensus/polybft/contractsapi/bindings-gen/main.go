@@ -44,6 +44,7 @@ func main() {
 				"initialize",
 				"addToWhitelist",
 				"register",
+				"withdraw",
 			},
 			[]string{
 				"NewValidator",
