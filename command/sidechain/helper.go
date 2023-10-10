@@ -75,10 +75,10 @@ func GetAccountFromDir(accountDir string) (*wallet.Account, error) {
 // 		return nil, err
 // 	}
 
-// 	withdrawableRewards, err := types.ParseUint256orHex(&response)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+// withdrawableRewards, err := common.ParseUint256orHex(&response)
+// if err != nil {
+// 	return nil, err
+// }
 
 // 	validatorInfo.WithdrawableRewards = withdrawableRewards
 

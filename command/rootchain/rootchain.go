@@ -3,7 +3,6 @@ package rootchain
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/0xPolygon/polygon-edge/command/rootchain/deploy"
 	"github.com/0xPolygon/polygon-edge/command/rootchain/fund"
 	"github.com/0xPolygon/polygon-edge/command/rootchain/server"
 )
@@ -19,7 +18,8 @@ func GetCommand() *cobra.Command {
 		// rootchain server
 		server.GetCommand(),
 		// rootchain deploy
-		deploy.GetCommand(),
+		// Hydra modification: command is unused
+		// deploy.GetCommand(),
 		// rootchain fund
 		fund.GetCommand(),
 	)

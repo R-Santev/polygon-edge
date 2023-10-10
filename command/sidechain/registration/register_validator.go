@@ -14,6 +14,7 @@ import (
 	bls "github.com/0xPolygon/polygon-edge/consensus/polybft/signer"
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/wallet"
 	"github.com/0xPolygon/polygon-edge/contracts"
+	"github.com/0xPolygon/polygon-edge/helper/common"
 	"github.com/0xPolygon/polygon-edge/secrets"
 	"github.com/0xPolygon/polygon-edge/txrelayer"
 	"github.com/0xPolygon/polygon-edge/types"
@@ -172,7 +173,7 @@ func stake(sender txrelayer.TxRelayer, account *wallet.Account) (*ethgo.Receipt,
 		return nil, err
 	}
 
-	stake, err := types.ParseUint256orHex(&params.stake)
+	stake, err := common.ParseUint256orHex(&params.stake)
 	if err != nil {
 		return nil, err
 	}

@@ -6,8 +6,7 @@ import (
 
 	"github.com/0xPolygon/polygon-edge/command/helper"
 	sidechainHelper "github.com/0xPolygon/polygon-edge/command/sidechain"
-
-	"github.com/0xPolygon/polygon-edge/types"
+	"github.com/0xPolygon/polygon-edge/helper/common"
 )
 
 const (
@@ -29,7 +28,7 @@ func (rp *registerParams) validateFlags() error {
 	}
 
 	if rp.stake != "" {
-		_, err := types.ParseUint256orHex(&rp.stake)
+		_, err := common.ParseUint256orHex(&rp.stake)
 		if err != nil {
 			return fmt.Errorf("provided stake '%s' isn't valid", rp.stake)
 		}

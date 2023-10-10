@@ -167,7 +167,7 @@ func initLiquidityToken(polyBFTConfig PolyBFTConfig, transition *state.Transitio
 // getInitERC721PredicateACLInput builds initialization input parameters
 // for child chain ERC721PredicateAccessList SC
 // func getInitERC721PredicateACLInput(config *BridgeConfig, owner types.Address,
-// 	childChainMintable bool) ([]byte, error) {
+// 	useAllowList, useBlockList, childChainMintable bool) ([]byte, error) {
 // 	var params contractsapi.StateTransactionInput
 // 	if childChainMintable {
 // 		params = &contractsapi.InitializeRootMintableERC721PredicateACLFn{
@@ -175,8 +175,8 @@ func initLiquidityToken(polyBFTConfig PolyBFTConfig, transition *state.Transitio
 // 			NewStateReceiver:        contracts.StateReceiverContract,
 // 			NewChildERC721Predicate: config.ChildMintableERC721PredicateAddr,
 // 			NewChildTokenTemplate:   config.ChildERC721Addr,
-// 			NewUseAllowList:         owner != contracts.SystemCaller,
-// 			NewUseBlockList:         owner != contracts.SystemCaller,
+// 			NewUseAllowList:         useAllowList,
+// 			NewUseBlockList:         useBlockList,
 // 			NewOwner:                owner,
 // 		}
 // 	} else {
@@ -185,8 +185,8 @@ func initLiquidityToken(polyBFTConfig PolyBFTConfig, transition *state.Transitio
 // 			NewStateReceiver:       contracts.StateReceiverContract,
 // 			NewRootERC721Predicate: config.RootERC721PredicateAddr,
 // 			NewChildTokenTemplate:  contracts.ChildERC721Contract,
-// 			NewUseAllowList:        owner != contracts.SystemCaller,
-// 			NewUseBlockList:        owner != contracts.SystemCaller,
+// 			NewUseAllowList:        useAllowList,
+// 			NewUseBlockList:        useBlockList,
 // 			NewOwner:               owner,
 // 		}
 // 	}
@@ -216,10 +216,10 @@ func initLiquidityToken(polyBFTConfig PolyBFTConfig, transition *state.Transitio
 // 	return params.EncodeAbi()
 // }
 
-// getInitERC1155PredicateACLInput builds initialization input parameters
-// for child chain ERC1155PredicateAccessList SC
+// // getInitERC1155PredicateACLInput builds initialization input parameters
+// // for child chain ERC1155PredicateAccessList SC
 // func getInitERC1155PredicateACLInput(config *BridgeConfig, owner types.Address,
-// 	childChainMintable bool) ([]byte, error) {
+// 	useAllowList, useBlockList, childChainMintable bool) ([]byte, error) {
 // 	var params contractsapi.StateTransactionInput
 // 	if childChainMintable {
 // 		params = &contractsapi.InitializeRootMintableERC1155PredicateACLFn{
@@ -227,8 +227,8 @@ func initLiquidityToken(polyBFTConfig PolyBFTConfig, transition *state.Transitio
 // 			NewStateReceiver:         contracts.StateReceiverContract,
 // 			NewChildERC1155Predicate: config.ChildMintableERC1155PredicateAddr,
 // 			NewChildTokenTemplate:    config.ChildERC1155Addr,
-// 			NewUseAllowList:          owner != contracts.SystemCaller,
-// 			NewUseBlockList:          owner != contracts.SystemCaller,
+// 			NewUseAllowList:          useAllowList,
+// 			NewUseBlockList:          useBlockList,
 // 			NewOwner:                 owner,
 // 		}
 // 	} else {
@@ -237,8 +237,8 @@ func initLiquidityToken(polyBFTConfig PolyBFTConfig, transition *state.Transitio
 // 			NewStateReceiver:        contracts.StateReceiverContract,
 // 			NewRootERC1155Predicate: config.RootERC1155PredicateAddr,
 // 			NewChildTokenTemplate:   contracts.ChildERC1155Contract,
-// 			NewUseAllowList:         owner != contracts.SystemCaller,
-// 			NewUseBlockList:         owner != contracts.SystemCaller,
+// 			NewUseAllowList:         useAllowList,
+// 			NewUseBlockList:         useBlockList,
 // 			NewOwner:                owner,
 // 		}
 // 	}

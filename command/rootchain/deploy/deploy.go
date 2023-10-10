@@ -343,6 +343,16 @@ package deploy
 // 		}
 // 	}
 
+// 	// set event tracker start blocks for rootchain contract(s) of interest
+// 	// the block number should be queried before deploying contracts so that no events during deployment
+// 	// and initialization are missed
+// 	blockNum, err := client.Eth().BlockNumber()
+// 	if err != nil {
+// 		outputter.SetError(fmt.Errorf("failed to query rootchain latest block number: %w", err))
+
+// 		return
+// 	}
+
 // 	deploymentResultInfo, err := deployContracts(outputter, client,
 // 		chainConfig.Params.ChainID, consensusCfg.InitialValidatorSet, cmd.Context())
 // 	if err != nil {
@@ -362,14 +372,6 @@ package deploy
 // 	}
 
 // 	consensusCfg.Bridge = bridgeConfig
-
-// 	// set event tracker start blocks for rootchain contract(s) of interest
-// 	blockNum, err := client.Eth().BlockNumber()
-// 	if err != nil {
-// 		outputter.SetError(fmt.Errorf("failed to query rootchain latest block number: %w", err))
-
-// 		return
-// 	}
 
 // 	consensusCfg.Bridge.EventTrackerStartBlocks = map[types.Address]uint64{
 // 		deploymentResultInfo.RootchainCfg.StateSenderAddress: blockNum,
