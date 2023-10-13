@@ -16,7 +16,7 @@ type stakeParams struct {
 	accountDir      string
 	accountConfig   string
 	jsonRPC         string
-	amount          uint64
+	amount          string
 	self            bool
 	delegateAddress string
 }

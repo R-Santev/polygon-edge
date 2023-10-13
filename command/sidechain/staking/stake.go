@@ -11,6 +11,7 @@ import (
 	sidechainHelper "github.com/0xPolygon/polygon-edge/command/sidechain"
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/contractsapi"
 	"github.com/0xPolygon/polygon-edge/contracts"
+	"github.com/0xPolygon/polygon-edge/helper/common"
 	"github.com/0xPolygon/polygon-edge/txrelayer"
 	"github.com/0xPolygon/polygon-edge/types"
 	"github.com/spf13/cobra"
@@ -59,10 +60,10 @@ func setFlags(cmd *cobra.Command) {
 		"indicates if its a self stake action",
 	)
 
-	cmd.Flags().Uint64Var(
+	cmd.Flags().StringVar(
 		&params.amount,
 		sidechainHelper.AmountFlag,
-		0,
+		"0",
 		"amount to stake or delegate to another account",
 	)
 
@@ -113,11 +114,16 @@ func runCommand(cmd *cobra.Command, _ []string) error {
 		}
 	}
 
+	parsedValue, err := common.ParseUint256orHex(&params.amount)
+	if err != nil {
+		return fmt.Errorf("cannot parse \"amount\" value %s", params.amount)
+	}
+
 	txn := &ethgo.Transaction{
 		From:     validatorAccount.Ecdsa.Address(),
 		Input:    encoded,
 		To:       (*ethgo.Address)(&contracts.ValidatorSetContract),
-		Value:    new(big.Int).SetUint64(params.amount),
+		Value:    parsedValue,
 		GasPrice: sidechainHelper.DefaultGasPrice,
 	}
 
