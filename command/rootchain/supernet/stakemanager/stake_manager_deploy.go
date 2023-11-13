@@ -24,7 +24,7 @@ package stakemanager
 // 	stakeMgrDeployCmd := &cobra.Command{
 // 		Use:     "stake-manager-deploy",
 // 		Short:   "Command for deploying stake manager contract on rootchain",
-// 		PreRunE: runPreRun,
+// 		PreRunE: preRunCommand,
 // 		RunE:    runCommand,
 // 	}
 
@@ -33,7 +33,7 @@ package stakemanager
 // 	return stakeMgrDeployCmd
 // }
 
-// func runPreRun(cmd *cobra.Command, _ []string) error {
+// func preRunCommand(cmd *cobra.Command, _ []string) error {
 // 	params.jsonRPC = helper.GetJSONRPCAddress(cmd)
 
 // 	return params.validateFlags()
@@ -118,10 +118,10 @@ package stakemanager
 // 		return fmt.Errorf("deploying stake manager failed: %w", err)
 // 	}
 
-// 	if params.isTestMode {
-// 		// fund deployer so that he can deploy contracts
-// 		deployerAddr := deployerKey.Address()
-// 		txn := &ethgo.Transaction{To: &deployerAddr, Value: ethgo.Ether(1)}
+// if params.isTestMode {
+// 	// fund deployer so that he can deploy contracts
+// 	deployerAddr := deployerKey.Address()
+// 	txn := rootHelper.CreateTransaction(ethgo.ZeroAddress, &deployerAddr, nil, ethgo.Ether(1), true)
 
 // 		if _, err = txRelayer.SendTransactionLocal(txn); err != nil {
 // 			return fmt.Errorf("failed to send local transaction: %w", err)
@@ -247,10 +247,7 @@ package stakemanager
 
 // func deployContract(txRelayer txrelayer.TxRelayer, deployerKey ethgo.Key,
 // 	artifact *artifact.Artifact, contractName string) (types.Address, error) {
-// 	txn := &ethgo.Transaction{
-// 		To:    nil, // contract deployment
-// 		Input: artifact.Bytecode,
-// 	}
+// 	txn := rootHelper.CreateTransaction(ethgo.ZeroAddress, nil, artifact.Bytecode, nil, true)
 
 // 	receipt, err := txRelayer.SendTransaction(txn, deployerKey)
 // 	if err != nil {

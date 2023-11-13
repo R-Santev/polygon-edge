@@ -158,11 +158,8 @@ package registration
 // 		return nil, fmt.Errorf("register validator failed: %w", err)
 // 	}
 
-// 	supernetAddr := ethgo.Address(types.StringToAddress(params.supernetManagerAddress))
-// 	txn := &ethgo.Transaction{
-// 		Input: input,
-// 		To:    &supernetAddr,
-// 	}
+// supernetAddr := ethgo.Address(types.StringToAddress(params.supernetManagerAddress))
+// txn := rootHelper.CreateTransaction(ethgo.ZeroAddress, &supernetAddr, input, nil, true)
 
 // 	return sender.SendTransaction(txn, account.Ecdsa)
 // }

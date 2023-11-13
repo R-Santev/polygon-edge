@@ -12,6 +12,7 @@ import (
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/wallet"
 	"github.com/0xPolygon/polygon-edge/types"
 	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -120,6 +121,12 @@ func FuzzTestStakeManagerPostBlock(f *testing.F) {
 			BlockID:     11,
 			StakeValue:  70,
 		},
+		{
+			EpochID:     7,
+			ValidatorID: 1,
+			BlockID:     2,
+			StakeValue:  10,
+		},
 	}
 
 	for _, seed := range seeds {
@@ -149,7 +156,14 @@ func FuzzTestStakeManagerPostBlock(f *testing.F) {
 
 		validatorSetAddr := types.StringToAddress("0x0001")
 
-		stakeManager := newStakeManager(
+		bcMock := new(blockchainMock)
+		for i := 0; i < int(data.BlockID); i++ {
+			bcMock.On("CurrentHeader").Return(&types.Header{Number: 0})
+			bcMock.On("GetHeaderByNumber", mock.Anything).Return(&types.Header{Hash: types.Hash{6, 4}}, true).Once()
+			bcMock.On("GetReceiptsByHash", mock.Anything).Return([]*types.Receipt{{}}, error(nil)).Once()
+		}
+
+		stakeManager, err := newStakeManager(
 			hclog.NewNullLogger(),
 			state,
 			wallet.NewEcdsaSigner(validators.GetValidator("A").Key()),
@@ -157,6 +171,7 @@ func FuzzTestStakeManagerPostBlock(f *testing.F) {
 			5,
 			nil,
 		)
+		require.NoError(t, err)
 
 		// insert initial full validator set
 		require.NoError(t, state.StakeStore.insertFullValidatorSet(validatorSetState{
@@ -175,14 +190,12 @@ func FuzzTestStakeManagerPostBlock(f *testing.F) {
 			},
 		}
 
-		req := &PostBlockRequest{
+		require.NoError(t, stakeManager.PostBlock(&PostBlockRequest{
 			FullBlock: &types.FullBlock{Block: &types.Block{Header: &types.Header{Number: data.BlockID}},
 				Receipts: []*types.Receipt{receipt},
 			},
 			Epoch: data.EpochID,
-		}
-		err := stakeManager.PostBlock(req)
-		require.NoError(t, err)
+		}))
 	})
 }
 
@@ -195,7 +208,10 @@ func FuzzTestStakeManagerUpdateValidatorSet(f *testing.F) {
 	validators := validator.NewTestValidatorsWithAliases(f, aliases, stakes)
 	state := newTestState(f)
 
-	stakeManager := newStakeManager(
+	bcMock := new(blockchainMock)
+	bcMock.On("CurrentHeader").Return(&types.Header{Number: 0})
+
+	stakeManager, err := newStakeManager(
 		hclog.NewNullLogger(),
 		state,
 		wallet.NewEcdsaSigner(validators.GetValidator("A").Key()),
@@ -203,6 +219,7 @@ func FuzzTestStakeManagerUpdateValidatorSet(f *testing.F) {
 		10,
 		nil,
 	)
+	require.NoError(f, err)
 
 	seeds := []updateValidatorSetF{
 		{

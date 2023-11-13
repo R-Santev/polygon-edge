@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -36,6 +37,9 @@ var (
 	// EmptyCodeHash is the root where there is no code.
 	// Equivalent of: `types.BytesToHash(crypto.Keccak256(nil))`
 	EmptyCodeHash = StringToHash("0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")
+
+	// ErrTxTypeNotSupported denotes that transaction is not supported
+	ErrTxTypeNotSupported = errors.New("transaction type not supported")
 )
 
 type Hash [HashLength]byte
@@ -155,7 +159,7 @@ func IsValidAddress(address string) error {
 
 	// check if the address has the correct length
 	if len(decodedAddress) != AddressLength {
-		return fmt.Errorf("address %s has invalid length", address)
+		return fmt.Errorf("address %s has invalid length", string(decodedAddress))
 	}
 
 	return nil

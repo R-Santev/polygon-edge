@@ -177,14 +177,15 @@ func (c *consensusRuntime) initStateSyncManager(logger hcf.Logger) error {
 			logger.Named("state-sync-manager"),
 			c.config.State,
 			&stateSyncConfig{
-				key:                   c.config.Key,
-				stateSenderAddr:       stateSenderAddr,
-				stateSenderStartBlock: c.config.PolyBFTConfig.Bridge.EventTrackerStartBlocks[stateSenderAddr],
-				jsonrpcAddr:           c.config.PolyBFTConfig.Bridge.JSONRPCEndpoint,
-				dataDir:               c.config.DataDir,
-				topic:                 c.config.bridgeTopic,
-				maxCommitmentSize:     maxCommitmentSize,
-				numBlockConfirmations: c.config.numBlockConfirmations,
+				key:                      c.config.Key,
+				stateSenderAddr:          stateSenderAddr,
+				stateSenderStartBlock:    c.config.PolyBFTConfig.Bridge.EventTrackerStartBlocks[stateSenderAddr],
+				jsonrpcAddr:              c.config.PolyBFTConfig.Bridge.JSONRPCEndpoint,
+				dataDir:                  c.config.DataDir,
+				topic:                    c.config.bridgeTopic,
+				maxCommitmentSize:        maxCommitmentSize,
+				numBlockConfirmations:    c.config.numBlockConfirmations,
+				blockTrackerPollInterval: c.config.PolyBFTConfig.BlockTrackerPollInterval.Duration,
 			},
 			c,
 		)
@@ -230,7 +231,7 @@ func (c *consensusRuntime) initStakeManager(logger hcf.Logger) error {
 	// H_MODIFY: Root chain is unused so we remove initialization of root relayer
 	// rootRelayer, err := txrelayer.NewTxRelayer(txrelayer.WithIPAddress(c.config.PolyBFTConfig.Bridge.JSONRPCEndpoint))
 
-	c.stakeManager = newStakeManager(
+	c.stakeManager, err = newStakeManager(
 		logger.Named("stake-manager"),
 		c.state,
 		wallet.NewEcdsaSigner(c.config.Key),
@@ -239,7 +240,7 @@ func (c *consensusRuntime) initStakeManager(logger hcf.Logger) error {
 		c.config.blockchain,
 	)
 
-	return nil
+	return err
 }
 
 // getGuardedData returns last build block, proposer snapshot and current epochMetadata in a thread-safe manner.

@@ -1354,29 +1354,6 @@ func (c *CommitStateReceiverFn) DecodeAbi(buf []byte) error {
 	return decodeMethod(StateReceiver.Abi.Methods["commit"], buf, c)
 }
 
-type StateSyncedEvent struct {
-	ID       *big.Int      `abi:"id"`
-	Sender   types.Address `abi:"sender"`
-	Receiver types.Address `abi:"receiver"`
-	Data     []byte        `abi:"data"`
-}
-
-func (*StateSyncedEvent) Sig() ethgo.Hash {
-	return StateSender.Abi.Events["StateSynced"].ID()
-}
-
-func (*StateSyncedEvent) Encode(inputs interface{}) ([]byte, error) {
-	return StateSender.Abi.Events["StateSynced"].Inputs.Encode(inputs)
-}
-
-func (s *StateSyncedEvent) ParseLog(log *ethgo.Log) (bool, error) {
-	if !StateSender.Abi.Events["StateSynced"].Match(log) {
-		return false, nil
-	}
-
-	return true, decodeEvent(StateSender.Abi.Events["StateSynced"], log, s)
-}
-
 type NewCommitmentEvent struct {
 	StartID *big.Int   `abi:"startId"`
 	EndID   *big.Int   `abi:"endId"`
@@ -1489,4 +1466,20 @@ func (e *ExitExitHelperFn) EncodeAbi() ([]byte, error) {
 
 func (e *ExitExitHelperFn) DecodeAbi(buf []byte) error {
 	return decodeMethod(ExitHelper.Abi.Methods["exit"], buf, e)
+}
+
+type InitializeExitHelperFn struct {
+	NewCheckpointManager types.Address `abi:"newCheckpointManager"`
+}
+
+func (i *InitializeExitHelperFn) Sig() []byte {
+	return ExitHelper.Abi.Methods["initialize"].ID()
+}
+
+func (i *InitializeExitHelperFn) EncodeAbi() ([]byte, error) {
+	return ExitHelper.Abi.Methods["initialize"].Encode(i)
+}
+
+func (i *InitializeExitHelperFn) DecodeAbi(buf []byte) error {
+	return decodeMethod(ExitHelper.Abi.Methods["initialize"], buf, i)
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/0xPolygon/polygon-edge/chain"
 	"github.com/0xPolygon/polygon-edge/contracts"
 	"github.com/0xPolygon/polygon-edge/crypto"
-	"github.com/0xPolygon/polygon-edge/helper/common"
 	"github.com/0xPolygon/polygon-edge/state/runtime"
 	"github.com/0xPolygon/polygon-edge/state/runtime/addresslist"
 	"github.com/0xPolygon/polygon-edge/state/runtime/evm"
@@ -451,18 +450,7 @@ func (t *Transition) ContextPtr() *runtime.TxContext {
 }
 
 func (t *Transition) subGasLimitPrice(msg *types.Transaction) error {
-	upfrontGasCost := new(big.Int).SetUint64(msg.Gas)
-
-	factor := new(big.Int)
-	if msg.GasFeeCap != nil && msg.GasFeeCap.BitLen() > 0 {
-		// Apply EIP-1559 tx cost calculation factor
-		factor = factor.Set(msg.GasFeeCap)
-	} else {
-		// Apply legacy tx cost calculation factor
-		factor = factor.Set(msg.GasPrice)
-	}
-
-	upfrontGasCost = upfrontGasCost.Mul(upfrontGasCost, factor)
+	upfrontGasCost := GetLondonFixHandler(uint64(t.ctx.Number)).getUpfrontGasCost(msg, t.ctx.BaseFee)
 
 	if err := t.state.SubBalance(msg.From, upfrontGasCost); err != nil {
 		if errors.Is(err, runtime.ErrNotEnoughFunds) {
@@ -486,39 +474,9 @@ func (t *Transition) nonceCheck(msg *types.Transaction) error {
 }
 
 // checkDynamicFees checks correctness of the EIP-1559 feature-related fields.
-// Basically, makes sure gas tip cap and gas fee cap are good.
+// Basically, makes sure gas tip cap and gas fee cap are good for dynamic and legacy transactions
 func (t *Transition) checkDynamicFees(msg *types.Transaction) error {
-	if msg.Type != types.DynamicFeeTx {
-		return nil
-	}
-
-	if msg.GasFeeCap.BitLen() == 0 && msg.GasTipCap.BitLen() == 0 {
-		return nil
-	}
-
-	if l := msg.GasFeeCap.BitLen(); l > 256 {
-		return fmt.Errorf("%w: address %v, GasFeeCap bit length: %d", ErrFeeCapVeryHigh,
-			msg.From.String(), l)
-	}
-
-	if l := msg.GasTipCap.BitLen(); l > 256 {
-		return fmt.Errorf("%w: address %v, GasTipCap bit length: %d", ErrTipVeryHigh,
-			msg.From.String(), l)
-	}
-
-	if msg.GasFeeCap.Cmp(msg.GasTipCap) < 0 {
-		return fmt.Errorf("%w: address %v, GasTipCap: %s, GasFeeCap: %s", ErrTipAboveFeeCap,
-			msg.From.String(), msg.GasTipCap, msg.GasFeeCap)
-	}
-
-	// This will panic if baseFee is nil, but basefee presence is verified
-	// as part of header validation.
-	if msg.GasFeeCap.Cmp(t.ctx.BaseFee) < 0 {
-		return fmt.Errorf("%w: address %v, GasFeeCap: %s, BaseFee: %s", ErrFeeCapTooLow,
-			msg.From.String(), msg.GasFeeCap, t.ctx.BaseFee)
-	}
-
-	return nil
+	return GetLondonFixHandler(uint64(t.ctx.Number)).checkDynamicFees(msg, t)
 }
 
 // errors that can originate in the consensus rules checks of the apply method below
@@ -547,6 +505,9 @@ var (
 	// ErrFeeCapTooLow is returned if the transaction fee cap is less than the
 	// the base fee of the block.
 	ErrFeeCapTooLow = errors.New("max fee per gas less than block base fee")
+
+	// ErrNonceUintOverflow is returned if uint64 overflow happens
+	ErrNonceUintOverflow = errors.New("nonce uint64 overflow")
 )
 
 type TransitionApplicationError struct {
@@ -631,7 +592,9 @@ func (t *Transition) apply(msg *types.Transaction) (*runtime.ExecutionResult, er
 	if msg.IsContractCreation() {
 		result = t.Create2(msg.From, msg.Input, value, gasLeft)
 	} else {
-		t.state.IncrNonce(msg.From)
+		if err := t.state.IncrNonce(msg.From); err != nil {
+			return nil, err
+		}
 		result = t.Call2(msg.From, *msg.To, msg.Input, value, gasLeft)
 	}
 
@@ -659,13 +622,9 @@ func (t *Transition) apply(msg *types.Transaction) (*runtime.ExecutionResult, er
 	// Define effective tip based on tx type.
 	// We use EIP-1559 fields of the tx if the london hardfork is enabled.
 	// Effective tip became to be either gas tip cap or (gas fee cap - current base fee)
-	effectiveTip := new(big.Int).Set(gasPrice)
-	if t.config.London && msg.Type == types.DynamicFeeTx {
-		effectiveTip = common.BigMin(
-			new(big.Int).Sub(msg.GasFeeCap, t.ctx.BaseFee),
-			new(big.Int).Set(msg.GasTipCap),
-		)
-	}
+	effectiveTip := GetLondonFixHandler(uint64(t.ctx.Number)).getEffectiveTip(
+		msg, gasPrice, t.ctx.BaseFee, t.config.London,
+	)
 
 	// Pay the coinbase fee as a miner reward using the calculated effective tip.
 	coinbaseFee := new(big.Int).Mul(new(big.Int).SetUint64(result.GasUsed), effectiveTip)
@@ -849,7 +808,9 @@ func (t *Transition) applyCreate(c *runtime.Contract, host runtime.Host) *runtim
 	}
 
 	// Increment the nonce of the caller
-	t.state.IncrNonce(c.Caller)
+	if err := t.state.IncrNonce(c.Caller); err != nil {
+		return &runtime.ExecutionResult{Err: err}
+	}
 
 	// Check if there is a collision and the address already exists
 	if t.hasCodeOrNonce(c.Address) {
@@ -865,7 +826,10 @@ func (t *Transition) applyCreate(c *runtime.Contract, host runtime.Host) *runtim
 	if t.config.EIP158 {
 		// Force the creation of the account
 		t.state.CreateAccount(c.Address)
-		t.state.IncrNonce(c.Address)
+
+		if err := t.state.IncrNonce(c.Address); err != nil {
+			return &runtime.ExecutionResult{Err: err}
+		}
 	}
 
 	// Transfer the value

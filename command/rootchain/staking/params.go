@@ -37,8 +37,8 @@ package staking
 // }
 
 // type stakeResult struct {
-// 	validatorAddress string   `json:"validatorAddress"`
-// 	amount           *big.Int `json:"amount"`
+// 	ValidatorAddress string   `json:"validatorAddress"`
+// 	Amount           *big.Int `json:"amount"`
 // }
 
 // func (sr stakeResult) GetOutput() string {
@@ -47,8 +47,8 @@ package staking
 // 	buffer.WriteString("\n[VALIDATOR STAKE]\n")
 
 // vals := make([]string, 0, 2)
-// vals = append(vals, fmt.Sprintf("Validator Address|%s", sr.validatorAddress))
-// vals = append(vals, fmt.Sprintf("Amount Staked|%d", sr.amount))
+// vals = append(vals, fmt.Sprintf("Validator Address|%s", sr.ValidatorAddress))
+// vals = append(vals, fmt.Sprintf("Amount Staked|%d", sr.Amount))
 
 // 	buffer.WriteString(helper.FormatKV(vals))
 // 	buffer.WriteString("\n")
