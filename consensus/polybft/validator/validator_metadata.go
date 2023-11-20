@@ -36,7 +36,9 @@ func (v *ValidatorMetadata) Equals(b *ValidatorMetadata) bool {
 		return false
 	}
 
-	return v.EqualAddressAndBlsKey(b) && v.VotingPower.Cmp(b.VotingPower) == 0 && v.IsActive == b.IsActive
+	return v.EqualAddressAndBlsKey(b) &&
+		v.VotingPower.Cmp(b.VotingPower) == 0 &&
+		v.IsActive == b.IsActive
 }
 
 // EqualAddressAndBlsKey checks ValidatorMetadata equality against Address and BlsKey fields

@@ -46,7 +46,7 @@ func (d *dummyStakeManager) UpdateValidatorSet(epoch uint64,
 
 var _ StakeManager = (*stakeManager)(nil)
 
-// stakeManager saves transfer events that happened in each block
+// stakeManager saves StakeChanged events that happened in each block
 // and calculates updated validator set based on changed stake
 type stakeManager struct {
 	logger hclog.Logger
@@ -57,8 +57,9 @@ type stakeManager struct {
 	// Hydra modify: Root chain is unused so remove supernetManagerContract
 	// supernetManagerContract types.Address
 	maxValidatorSetSize int
-	blockchain          blockchainBackend
-	eventsGetter        *eventsGetter[*contractsapi.TransferEvent]
+	// Hydra modify: Gives access to ValidatorSet contract state at specific block
+	blockchain   blockchainBackend
+	eventsGetter *eventsGetter[*contractsapi.StakeChangedEvent]
 }
 
 // newStakeManager returns a new instance of stake manager
@@ -70,25 +71,23 @@ func newStakeManager(
 	maxValidatorSetSize int,
 	blockchain blockchainBackend,
 ) (*stakeManager, error) {
-	eventsGetter := &eventsGetter[*contractsapi.TransferEvent]{
+	eventsGetter := &eventsGetter[*contractsapi.StakeChangedEvent]{
 		blockchain: blockchain,
 		isValidLogFn: func(l *types.Log) bool {
 			return l.Address == validatorSetAddr
 		},
-		parseEventFn: func(h *types.Header, l *ethgo.Log) (*contractsapi.TransferEvent, bool, error) {
-			var transferEvent contractsapi.TransferEvent
-			doesMatch, err := transferEvent.ParseLog(l)
+		parseEventFn: func(h *types.Header, l *ethgo.Log) (*contractsapi.StakeChangedEvent, bool, error) {
+			var stakeChangedEvent contractsapi.StakeChangedEvent
+			doesMatch, err := stakeChangedEvent.ParseLog(l)
 
-			return &transferEvent, doesMatch, err
+			return &stakeChangedEvent, doesMatch, err
 		},
 	}
 
 	sm := &stakeManager{
-		logger: logger,
-		state:  state,
-		// rootChainRelayer:        rootchainRelayer,
-		key: key,
-		// supernetManagerContract: supernetManagerAddr,
+		logger:              logger,
+		state:               state,
+		key:                 key,
 		maxValidatorSetSize: maxValidatorSetSize,
 		blockchain:          blockchain,
 		eventsGetter:        eventsGetter,
@@ -116,29 +115,29 @@ func (s *stakeManager) PostEpoch(req *PostEpochRequest) error {
 	})
 }
 
-// Hydra TODO: Modify mechanism to be as similar as possible to the Polygon's one
 // PostBlock is called on every insert of finalized block (either from consensus or syncer)
-// It will read any transfer event that happened in block and update full validator set in db
+// It will read any StakeChanged event that happened in block and update full validator set in db
 func (s *stakeManager) PostBlock(req *PostBlockRequest) error {
 	fullValidatorSet, err := s.state.StakeStore.getFullValidatorSet()
 	if err != nil {
 		return err
 	}
 
-	blockNumber := req.FullBlock.Block.Number()
+	blockHeader := req.FullBlock.Block.Header
+	blockNumber := blockHeader.Number
 
 	s.logger.Debug("Stake manager on post block",
 		"block", blockNumber,
 		"last saved", fullValidatorSet.BlockNumber,
 		"last updated", fullValidatorSet.UpdatedAtBlockNumber)
 
-	// get transfer currentBlockEvents from current block
-	transferEvents, err := s.eventsGetter.getFromBlocks(fullValidatorSet.BlockNumber, req.FullBlock)
+	// get StakeChanged currentBlockEvents from current block
+	stakeChangedEvents, err := s.eventsGetter.getFromBlocks(fullValidatorSet.BlockNumber, req.FullBlock)
 	if err != nil {
-		return fmt.Errorf("could not get transfer events from current block. Error: %w", err)
+		return fmt.Errorf("could not get StakeChanged events from current block. Error: %w", err)
 	}
 
-	if err = s.updateWithReceipts(&fullValidatorSet, transferEvents, blockNumber); err != nil {
+	if err = s.updateWithReceipts(&fullValidatorSet, stakeChangedEvents, blockHeader); err != nil {
 		return err
 	}
 
@@ -180,12 +179,12 @@ func (s *stakeManager) init(blockchain blockchainBackend) error {
 		"last saved", validatorSet.BlockNumber,
 		"last updated", validatorSet.UpdatedAtBlockNumber)
 
-	transferEvents, err := s.eventsGetter.getEventsFromAllBlocks(validatorSet.BlockNumber+1, currentBlockNumber)
+	stakeChangedEvents, err := s.eventsGetter.getEventsFromAllBlocks(validatorSet.BlockNumber+1, currentBlockNumber)
 	if err != nil {
 		return err
 	}
 
-	if err := s.updateWithReceipts(&validatorSet, transferEvents, currentBlockNumber); err != nil {
+	if err := s.updateWithReceipts(&validatorSet, stakeChangedEvents, currentHeader); err != nil {
 		return err
 	}
 
@@ -199,46 +198,31 @@ func (s *stakeManager) init(blockchain blockchainBackend) error {
 
 func (s *stakeManager) updateWithReceipts(
 	fullValidatorSet *validatorSetState,
-	transferEvents []*contractsapi.TransferEvent,
-	blockNumber uint64) error {
-	if len(transferEvents) == 0 {
+	stakeChangedEvents []*contractsapi.StakeChangedEvent,
+	blockHeader *types.Header) error {
+	if len(stakeChangedEvents) == 0 {
 		return nil
 	}
 
-	for _, event := range transferEvents {
-		if event.IsStake() {
-			updatedValidatorsStake[event.To] = struct{}{}
-		} else if event.IsUnstake() {
-			updatedValidatorsStake[event.From] = struct{}{}
-		} else {
-			s.logger.Debug("Found a transfer event that represents neither stake nor unstake")
-		}
+	systemState, err := s.getSystemStateForBlock(blockHeader)
+	if err != nil {
+		return err
 	}
 
-	// this is a temporary solution (a workaround) for a bug where amount
-	// in transfer event is not correctly generated (unknown 4 bytes are added to begging of Data array)
-	if len(updatedValidatorsStake) > 0 {
-		provider, err := s.blockchain.GetStateProviderForBlock(req.FullBlock.Block.Header)
-		if err != nil {
-			return err
-		}
+	exponent, err := systemState.GetVotingPowerExponent()
+	for _, event := range stakeChangedEvents {
+		s.logger.Debug(
+			"StakeChanged event",
+			"validator:", event.Validator,
+			"new stake balance:", event.NewStake,
+			"exponent:", exponent,
+		)
 
-		systemState := s.blockchain.GetSystemState(provider)
-		exponent, err := systemState.GetVotingPowerExponent()
-		if err != nil {
-			return fmt.Errorf("could not retrieve voting power exponent")
-		}
-
-		for a := range updatedValidatorsStake {
-			stake, err := systemState.GetStakeOnValidatorSet(a)
-			if err != nil {
-				return fmt.Errorf("could not retrieve balance of validator %v on ValidatorSet", a)
-			}
-
-			stakeMap.setStake(a, stake, exponent)
-		}
+		// update the stake
+		fullValidatorSet.Validators.setStake(event.Validator, event.NewStake, exponent)
 	}
 
+	blockNumber := blockHeader.Number
 	for addr, data := range fullValidatorSet.Validators {
 		if data.BlsKey == nil {
 			blsKey, err := s.getBlsKey(data.Address)
@@ -250,8 +234,7 @@ func (s *stakeManager) updateWithReceipts(
 			data.BlsKey = blsKey
 		}
 
-		// H_MODIFY: IsActive is properly handled in setStake
-		// data.IsActive = data.VotingPower.Cmp(bigZero) > 0
+		data.IsActive = data.VotingPower.Cmp(bigZero) > 0
 	}
 
 	// mark on which block validator set has been updated
@@ -337,11 +320,11 @@ func (s *stakeManager) UpdateValidatorSet(
 	return delta, nil
 }
 
-// getBlsKey returns bls key for validator from the supernet contract
 // Hydra modification: getBlsKey returns bls key for validator from the childValidatorSet contract
+// getBlsKey returns bls key for validator from the supernet contract
 func (s *stakeManager) getBlsKey(address types.Address) (*bls.PublicKey, error) {
 	header := s.blockchain.CurrentHeader()
-	systemState, err := s.getSystemState(header)
+	systemState, err := s.getSystemStateForBlock(header)
 	if err != nil {
 		return nil, err
 	}
@@ -354,9 +337,8 @@ func (s *stakeManager) getBlsKey(address types.Address) (*bls.PublicKey, error) 
 	return blsKey, nil
 }
 
-func (s *stakeManager) getSystemState(block *types.Header) (SystemState, error) {
-	header := s.blockchain.CurrentHeader()
-	provider, err := s.blockchain.GetStateProviderForBlock(header)
+func (s *stakeManager) getSystemStateForBlock(block *types.Header) (SystemState, error) {
+	provider, err := s.blockchain.GetStateProviderForBlock(block)
 	if err != nil {
 		return nil, err
 	}
@@ -400,7 +382,6 @@ func newValidatorStakeMap(validatorSet validator.AccountSet) validatorStakeMap {
 func (sc *validatorStakeMap) setStake(address types.Address, stakedBalance *big.Int, exponent *BigNumDecimal) {
 	votingPower := sc.calcVotingPower(stakedBalance, exponent)
 	isActive := votingPower.Cmp(bigZero) > 0
-
 	if metadata, exists := (*sc)[address]; exists {
 		metadata.VotingPower = votingPower
 		metadata.IsActive = isActive

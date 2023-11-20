@@ -9,29 +9,6 @@ import (
 	"github.com/umbracle/ethgo/abi"
 )
 
-type StateSyncedEvent struct {
-	ID       *big.Int      `abi:"id"`
-	Sender   types.Address `abi:"sender"`
-	Receiver types.Address `abi:"receiver"`
-	Data     []byte        `abi:"data"`
-}
-
-func (*StateSyncedEvent) Sig() ethgo.Hash {
-	return StateSender.Abi.Events["StateSynced"].ID()
-}
-
-func (*StateSyncedEvent) Encode(inputs interface{}) ([]byte, error) {
-	return StateSender.Abi.Events["StateSynced"].Inputs.Encode(inputs)
-}
-
-func (s *StateSyncedEvent) ParseLog(log *ethgo.Log) (bool, error) {
-	if !StateSender.Abi.Events["StateSynced"].Match(log) {
-		return false, nil
-	}
-
-	return true, decodeEvent(StateSender.Abi.Events["StateSynced"], log, s)
-}
-
 type Epoch struct {
 	StartBlock *big.Int   `abi:"startBlock"`
 	EndBlock   *big.Int   `abi:"endBlock"`
@@ -349,26 +326,25 @@ func (w *WithdrawalEvent) ParseLog(log *ethgo.Log) (bool, error) {
 	return true, decodeEvent(ValidatorSet.Abi.Events["Withdrawal"], log, w)
 }
 
-type TransferEvent struct {
-	From  types.Address `abi:"from"`
-	To    types.Address `abi:"to"`
-	Value *big.Int      `abi:"value"`
+type StakeChangedEvent struct {
+	Validator types.Address `abi:"validator"`
+	NewStake  *big.Int      `abi:"newStake"`
 }
 
-func (*TransferEvent) Sig() ethgo.Hash {
-	return ValidatorSet.Abi.Events["Transfer"].ID()
+func (*StakeChangedEvent) Sig() ethgo.Hash {
+	return ValidatorSet.Abi.Events["StakeChanged"].ID()
 }
 
-func (*TransferEvent) Encode(inputs interface{}) ([]byte, error) {
-	return ValidatorSet.Abi.Events["Transfer"].Inputs.Encode(inputs)
+func (*StakeChangedEvent) Encode(inputs interface{}) ([]byte, error) {
+	return ValidatorSet.Abi.Events["StakeChanged"].Inputs.Encode(inputs)
 }
 
-func (t *TransferEvent) ParseLog(log *ethgo.Log) (bool, error) {
-	if !ValidatorSet.Abi.Events["Transfer"].Match(log) {
+func (s *StakeChangedEvent) ParseLog(log *ethgo.Log) (bool, error) {
+	if !ValidatorSet.Abi.Events["StakeChanged"].Match(log) {
 		return false, nil
 	}
 
-	return true, decodeEvent(ValidatorSet.Abi.Events["Transfer"], log, t)
+	return true, decodeEvent(ValidatorSet.Abi.Events["StakeChanged"], log, s)
 }
 
 type InitializeLiquidityTokenFn struct {

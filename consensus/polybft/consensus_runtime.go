@@ -231,6 +231,7 @@ func (c *consensusRuntime) initStakeManager(logger hcf.Logger) error {
 	// H_MODIFY: Root chain is unused so we remove initialization of root relayer
 	// rootRelayer, err := txrelayer.NewTxRelayer(txrelayer.WithIPAddress(c.config.PolyBFTConfig.Bridge.JSONRPCEndpoint))
 
+	var err error
 	c.stakeManager, err = newStakeManager(
 		logger.Named("stake-manager"),
 		c.state,

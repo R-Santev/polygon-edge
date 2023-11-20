@@ -1483,3 +1483,26 @@ func (i *InitializeExitHelperFn) EncodeAbi() ([]byte, error) {
 func (i *InitializeExitHelperFn) DecodeAbi(buf []byte) error {
 	return decodeMethod(ExitHelper.Abi.Methods["initialize"], buf, i)
 }
+
+type StateSyncedEvent struct {
+	ID       *big.Int      `abi:"id"`
+	Sender   types.Address `abi:"sender"`
+	Receiver types.Address `abi:"receiver"`
+	Data     []byte        `abi:"data"`
+}
+
+func (*StateSyncedEvent) Sig() ethgo.Hash {
+	return StateSender.Abi.Events["StateSynced"].ID()
+}
+
+func (*StateSyncedEvent) Encode(inputs interface{}) ([]byte, error) {
+	return StateSender.Abi.Events["StateSynced"].Inputs.Encode(inputs)
+}
+
+func (s *StateSyncedEvent) ParseLog(log *ethgo.Log) (bool, error) {
+	if !StateSender.Abi.Events["StateSynced"].Match(log) {
+		return false, nil
+	}
+
+	return true, decodeEvent(StateSender.Abi.Events["StateSynced"], log, s)
+}

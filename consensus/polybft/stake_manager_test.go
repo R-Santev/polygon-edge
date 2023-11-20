@@ -60,16 +60,15 @@ func TestStakeManager_PostBlock(t *testing.T) {
 		initialSetAliases = []string{"A", "B", "C", "D", "E"}
 		epoch             = uint64(1)
 		block             = uint64(10)
-		newStake          = uint64(100)
 		firstValidator    = uint64(0)
 		secondValidator   = uint64(1)
-		oneCoin           = new(big.Int).Mul(big.NewInt(1e18), big.NewInt(1))
+		stakeAmount       = new(big.Int).Mul(big.NewInt(1e18), big.NewInt(155050))
 		validatorSetAddr  = types.StringToAddress("0x0001")
+		vPowerExp         = &BigNumDecimal{Numerator: big.NewInt(5000), Denominator: big.NewInt(10000)}
 	)
 
 	systemStateMockVar := new(systemStateMock)
-	systemStateMockVar.On("GetStakeOnValidatorSet", mock.Anything).Return(oneCoin, nil).Maybe()
-	systemStateMockVar.On("GetVotingPowerExponent").Return(&BigNumDecimal{Numerator: big.NewInt(8500), Denominator: big.NewInt(10000)}, nil).Maybe()
+	systemStateMockVar.On("GetVotingPowerExponent").Return(vPowerExp, nil).Maybe()
 
 	blockchainMockVar := new(blockchainMock)
 	blockchainMockVar.On("GetStateProviderForBlock", mock.Anything).Return(new(stateProviderMock), nil).Maybe()
@@ -81,19 +80,12 @@ func TestStakeManager_PostBlock(t *testing.T) {
 		t.Parallel()
 
 		customSystemStateMock := new(systemStateMock)
-		customSystemStateMock.On("GetStakeOnValidatorSet", mock.Anything).Return(big.NewInt(0), nil).Twice()
-		customSystemStateMock.On("GetVotingPowerExponent").Return(&BigNumDecimal{Numerator: big.NewInt(8500), Denominator: big.NewInt(10000)}, nil).Maybe()
+		customSystemStateMock.On("GetVotingPowerExponent").Return(&BigNumDecimal{Numerator: big.NewInt(5000), Denominator: big.NewInt(10000)}, nil).Once()
 
 		bcMock := new(blockchainMock)
-
-		// Hydra modification: we don't use the following methods
-		// bcMock.On("GetHeaderByNumber", block-2).Return(header1, true).Once()
-		// bcMock.On("GetHeaderByNumber", block-1).Return(header2, true).Once()
-		// bcMock.On("GetReceiptsByHash", header1.Hash).Return([]*types.Receipt{receipt}, error(nil)).Once()
-		// bcMock.On("GetReceiptsByHash", header2.Hash).Return([]*types.Receipt{}, error(nil)).Once()
-		bcMock.On("GetStateProviderForBlock", mock.Anything).Return(new(stateProviderMock), nil).Maybe()
-		bcMock.On("GetSystemState", mock.Anything, mock.Anything).Return(customSystemStateMock)
-		bcMock.On("CurrentHeader").Return(&types.Header{Number: block}, nil).Maybe()
+		bcMock.On("GetStateProviderForBlock", mock.Anything).Return(new(stateProviderMock), nil).Twice()
+		bcMock.On("GetSystemState", mock.Anything, mock.Anything).Return(customSystemStateMock).Twice()
+		bcMock.On("CurrentHeader").Return(&types.Header{Number: 0}, nil).Twice()
 
 		validators := validator.NewTestValidatorsWithAliases(t, allAliases)
 
@@ -115,12 +107,11 @@ func TestStakeManager_PostBlock(t *testing.T) {
 
 		receipt := &types.Receipt{
 			Logs: []*types.Log{
-				createTestLogForTransferEvent(
+				createTestLogForStakeChangedEvent(
 					t,
 					validatorSetAddr,
 					validators.GetValidator(initialSetAliases[firstValidator]).Address(),
-					types.ZeroAddress,
-					15000, // initial validator stake was 15000
+					big.NewInt(0),
 				),
 			},
 		}
@@ -152,8 +143,13 @@ func TestStakeManager_PostBlock(t *testing.T) {
 	t.Run("PostBlock - add stake to one validator", func(t *testing.T) {
 		t.Parallel()
 
+		systemStateMockVar := new(systemStateMock)
+		systemStateMockVar.On("GetVotingPowerExponent").Return(vPowerExp, nil).Once()
+
 		bcMock := new(blockchainMock)
 		bcMock.On("CurrentHeader").Return(&types.Header{Number: 0}, true).Once()
+		bcMock.On("GetStateProviderForBlock", mock.Anything).Return(new(stateProviderMock), nil).Times(3)
+		bcMock.On("GetSystemState", mock.Anything, mock.Anything).Return(systemStateMockVar).Times(3)
 
 		validators := validator.NewTestValidatorsWithAliases(t, allAliases)
 
@@ -163,7 +159,7 @@ func TestStakeManager_PostBlock(t *testing.T) {
 			wallet.NewEcdsaSigner(validators.GetValidator("A").Key()),
 			types.StringToAddress("0x0001"),
 			5,
-			blockchainMockVar,
+			bcMock,
 		)
 		require.NoError(t, err)
 
@@ -175,12 +171,11 @@ func TestStakeManager_PostBlock(t *testing.T) {
 
 		receipt := &types.Receipt{
 			Logs: []*types.Log{
-				createTestLogForTransferEvent(
+				createTestLogForStakeChangedEvent(
 					t,
 					validatorSetAddr,
-					types.ZeroAddress,
 					validators.GetValidator(initialSetAliases[secondValidator]).Address(),
-					250,
+					stakeAmount,
 				),
 			},
 		}
@@ -198,33 +193,26 @@ func TestStakeManager_PostBlock(t *testing.T) {
 
 		fullValidatorSet, err := state.StakeStore.getFullValidatorSet()
 		require.NoError(t, err)
-		var firstValidaotor *validator.ValidatorMetadata
-		firstValidaotor = nil
+		var firstValidator *validator.ValidatorMetadata = nil
 		for _, validator := range fullValidatorSet.Validators {
 			if validator.Address.String() == validators.GetValidator(initialSetAliases[secondValidator]).Address().String() {
-				firstValidaotor = validator
+				firstValidator = validator
 			}
 		}
-		require.NotNil(t, firstValidaotor)
-		require.Equal(t, big.NewInt(1), firstValidaotor.VotingPower)
-		require.True(t, firstValidaotor.IsActive)
+		require.NotNil(t, firstValidator)
+		require.Equal(t, validator.CalculateVPower(stakeAmount, vPowerExp.Numerator, vPowerExp.Denominator), firstValidator.VotingPower)
+		require.True(t, firstValidator.IsActive)
 	})
 
 	t.Run("PostBlock - add validator and stake", func(t *testing.T) {
 		t.Parallel()
 
-		validators := validator.NewTestValidatorsWithAliases(t, allAliases, []uint64{1, 2, 3, 4, 5, 6})
-
-		txRelayerMock := newDummyStakeTxRelayer(t, func() *validator.ValidatorMetadata {
-			return validators.GetValidator("F").ValidatorMetadata()
-		})
-
-		// just mock the call however, the dummy relayer should do its magic
-		txRelayerMock.On("Call", mock.Anything, mock.Anything, mock.Anything).
-			Return(nil, error(nil))
+		validators := validator.NewTestValidatorsWithAliases(t, allAliases, []uint64{10, 20, 30, 40, 50, 60})
 
 		bcMock := new(blockchainMock)
-		bcMock.On("CurrentHeader").Return(&types.Header{Number: 0}, true).Once()
+		bcMock.On("CurrentHeader").Return(&types.Header{Number: 0}, true).Twice()
+		bcMock.On("GetStateProviderForBlock", mock.Anything).Return(new(stateProviderMock), nil).Twice()
+		bcMock.On("GetSystemState", mock.Anything, mock.Anything).Return(systemStateMockVar).Twice()
 
 		stakeManager, err := newStakeManager(
 			hclog.NewNullLogger(),
@@ -232,7 +220,7 @@ func TestStakeManager_PostBlock(t *testing.T) {
 			wallet.NewEcdsaSigner(validators.GetValidator("A").Key()),
 			types.StringToAddress("0x0001"),
 			5,
-			blockchainMockVar,
+			bcMock,
 		)
 		require.NoError(t, err)
 
@@ -245,12 +233,11 @@ func TestStakeManager_PostBlock(t *testing.T) {
 		receipts := make([]*types.Receipt, len(allAliases))
 		for i := 0; i < len(allAliases); i++ {
 			receipts[i] = &types.Receipt{Logs: []*types.Log{
-				createTestLogForTransferEvent(
+				createTestLogForStakeChangedEvent(
 					t,
 					validatorSetAddr,
-					types.ZeroAddress,
 					validators.GetValidator(allAliases[i]).Address(),
-					newStake,
+					stakeAmount,
 				),
 			}}
 			receipts[i].SetStatus(types.ReceiptSuccess)
@@ -269,9 +256,8 @@ func TestStakeManager_PostBlock(t *testing.T) {
 		require.Len(t, fullValidatorSet.Validators, len(allAliases))
 
 		validatorsCount := validators.ToValidatorSet().Len()
-		// Hydra TODO: Replace with Table-driven tests, so different balance values can be tested
 		for _, v := range fullValidatorSet.Validators.getSorted(validatorsCount) {
-			require.Equal(t, uint64(1), v.VotingPower.Uint64()) // Hydra modification: balance is fetched from the contract
+			require.Equal(t, validator.CalculateVPower(stakeAmount, vPowerExp.Numerator, vPowerExp.Denominator), v.VotingPower)
 		}
 	})
 
@@ -281,12 +267,17 @@ func TestStakeManager_PostBlock(t *testing.T) {
 		receipt := &types.Receipt{}
 		header1, header2 := &types.Header{Hash: types.Hash{3, 2}, Number: 0}, &types.Header{Hash: types.Hash{6, 4}, Number: 0}
 
+		systemStateMockVar := new(systemStateMock)
+		systemStateMockVar.On("GetVotingPowerExponent").Return(vPowerExp, nil).Once()
+
 		bcMock := new(blockchainMock)
 		bcMock.On("CurrentHeader").Return(header1)
 		bcMock.On("GetHeaderByNumber", block-2).Return(header1, true).Once()
 		bcMock.On("GetHeaderByNumber", block-1).Return(header2, true).Once()
 		bcMock.On("GetReceiptsByHash", header1.Hash).Return([]*types.Receipt{receipt}, error(nil)).Once()
 		bcMock.On("GetReceiptsByHash", header2.Hash).Return([]*types.Receipt{}, error(nil)).Once()
+		bcMock.On("GetStateProviderForBlock", mock.Anything).Return(new(stateProviderMock), nil).Once()
+		bcMock.On("GetSystemState", mock.Anything, mock.Anything).Return(systemStateMockVar).Once()
 
 		validators := validator.NewTestValidatorsWithAliases(t, allAliases)
 
@@ -296,7 +287,7 @@ func TestStakeManager_PostBlock(t *testing.T) {
 			wallet.NewEcdsaSigner(validators.GetValidator("A").Key()),
 			types.StringToAddress("0x0001"),
 			5,
-			blockchainMockVar,
+			bcMock,
 		)
 		require.NoError(t, err)
 
@@ -306,13 +297,13 @@ func TestStakeManager_PostBlock(t *testing.T) {
 			BlockNumber: block - 3,
 		}))
 
+		customStakeAmount := big.NewInt(0).Add(stakeAmount, big.NewInt(250))
 		receipt.Logs = []*types.Log{
-			createTestLogForTransferEvent(
+			createTestLogForStakeChangedEvent(
 				t,
 				validatorSetAddr,
-				types.ZeroAddress,
 				validators.GetValidator(initialSetAliases[secondValidator]).Address(),
-				250,
+				customStakeAmount,
 			),
 		}
 		receipt.SetStatus(types.ReceiptSuccess)
@@ -336,10 +327,14 @@ func TestStakeManager_PostBlock(t *testing.T) {
 			}
 		}
 		require.NotNil(t, updatedValidator)
-		require.Equal(t, big.NewInt(1), updatedValidator.VotingPower)
+		require.Equal(
+			t,
+			validator.CalculateVPower(customStakeAmount, vPowerExp.Numerator, vPowerExp.Denominator),
+			updatedValidator.VotingPower,
+		)
 		require.True(t, updatedValidator.IsActive)
 
-		blockchainMockVar.AssertExpectations(t)
+		bcMock.AssertExpectations(t)
 	})
 }
 
@@ -362,7 +357,7 @@ func TestStakeManager_UpdateValidatorSet(t *testing.T) {
 		wallet.NewEcdsaSigner(validators.GetValidator("A").Key()),
 		types.StringToAddress("0x0001"),
 		10,
-		nil,
+		bcMock,
 	)
 	require.NoError(t, err)
 
@@ -532,6 +527,8 @@ func TestStakeManager_UpdateOnInit(t *testing.T) {
 		allAliases       = []string{"A", "B", "C", "D", "E", "F"}
 		validatorSetAddr = types.StringToAddress("0xf001")
 		epochID          = uint64(120)
+		stakeAmount      = new(big.Int).Mul(big.NewInt(1e18), big.NewInt(155050))
+		vPowerExp        = &BigNumDecimal{Numerator: big.NewInt(5000), Denominator: big.NewInt(10000)}
 	)
 
 	success := types.ReceiptSuccess
@@ -552,38 +549,39 @@ func TestStakeManager_UpdateOnInit(t *testing.T) {
 
 	sysStateMock := &systemStateMock{}
 	sysStateMock.On("GetEpoch").Return(epochID, nil).Once()
+	sysStateMock.On("GetVotingPowerExponent").Return(vPowerExp, nil).Once()
 
 	bcMock := new(blockchainMock)
-	bcMock.On("GetStateProviderForBlock", currentHeader).Return(contractProvider, nil).Once()
-	bcMock.On("GetSystemState", contractProvider).Return(sysStateMock, nil).Once()
+	bcMock.On("GetStateProviderForBlock", currentHeader).Return(contractProvider, nil).Twice()
+	bcMock.On("GetSystemState", contractProvider).Return(sysStateMock, nil).Twice()
 	bcMock.On("CurrentHeader", mock.Anything).Return(currentHeader, true).Once()
 	bcMock.On("GetHeaderByNumber", uint64(2)).Return(&types.Header{Number: 2, Hash: header2Hash}, true).Once()
 	bcMock.On("GetHeaderByNumber", uint64(3)).Return(&types.Header{Number: 3, Hash: header3Hash}, true).Once()
 	bcMock.On("GetHeaderByNumber", uint64(4)).Return(&types.Header{Number: 4, Hash: header4Hash}, true).Once()
+	stakeAmountTwo := new(big.Int).Mul(stakeAmount, big.NewInt(2))
 	bcMock.On("GetReceiptsByHash", header2Hash).Return([]*types.Receipt{
 		{
 			Status: &success,
 			Logs: []*types.Log{
-				createTestLogForTransferEvent(
+				createTestLogForStakeChangedEvent(
 					t,
 					validatorSetAddr,
-					types.ZeroAddress,
 					addresses[len(addresses)-2],
-					4,
+					stakeAmountTwo,
 				),
 			},
 		},
 	}, nil).Once()
+	stakeAmountThree := new(big.Int).Mul(stakeAmount, big.NewInt(3))
 	bcMock.On("GetReceiptsByHash", header3Hash).Return([]*types.Receipt{
 		{
 			Status: &success,
 			Logs: []*types.Log{
-				createTestLogForTransferEvent(
+				createTestLogForStakeChangedEvent(
 					t,
 					validatorSetAddr,
-					types.ZeroAddress,
 					addresses[len(addresses)-1],
-					6,
+					stakeAmountThree,
 				),
 			},
 		},
@@ -593,11 +591,10 @@ func TestStakeManager_UpdateOnInit(t *testing.T) {
 	_, err := newStakeManager(
 		hclog.NewNullLogger(),
 		state,
-		nil,
 		wallet.NewEcdsaSigner(validators.GetValidator("A").Key()),
-		validatorSetAddr, types.StringToAddress("0x0002"),
-		bcMock,
+		validatorSetAddr,
 		5,
+		bcMock,
 	)
 	require.NoError(t, err)
 
@@ -613,25 +610,24 @@ func TestStakeManager_UpdateOnInit(t *testing.T) {
 
 	for _, x := range fullValidatorSet.Validators {
 		if x.Address == addresses[len(addresses)-1] {
-			require.Equal(t, new(big.Int).SetUint64(7), x.VotingPower)
+			require.Equal(t, validator.CalculateVPower(stakeAmountThree, vPowerExp.Numerator, vPowerExp.Denominator), x.VotingPower)
 		} else if x.Address == addresses[len(addresses)-2] {
-			require.Equal(t, new(big.Int).SetUint64(5), x.VotingPower)
+			require.Equal(t, validator.CalculateVPower(stakeAmountTwo, vPowerExp.Numerator, vPowerExp.Denominator), x.VotingPower)
 		} else {
-			require.Equal(t, new(big.Int).SetUint64(1), x.VotingPower)
+			require.Equal(t, big.NewInt(15000), x.VotingPower)
 		}
 	}
 }
 
-func createTestLogForTransferEvent(t *testing.T, validatorSet, from, to types.Address, stake uint64) *types.Log {
+func createTestLogForStakeChangedEvent(t *testing.T, validatorSet, validator types.Address, stake *big.Int) *types.Log {
 	t.Helper()
 
-	var transferEvent contractsapi.TransferEvent
+	var stakeChangedEvent contractsapi.StakeChangedEvent
 
-	topics := make([]types.Hash, 3)
-	topics[0] = types.Hash(transferEvent.Sig())
-	topics[1] = types.BytesToHash(from.Bytes())
-	topics[2] = types.BytesToHash(to.Bytes())
-	encodedData, err := abi.MustNewType("uint256").Encode(new(big.Int).SetUint64(stake))
+	topics := make([]types.Hash, 2)
+	topics[0] = types.Hash(stakeChangedEvent.Sig())
+	topics[1] = types.BytesToHash(validator.Bytes())
+	encodedData, err := abi.MustNewType("uint256").Encode(stake)
 	require.NoError(t, err)
 
 	return &types.Log{

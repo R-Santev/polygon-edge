@@ -1,6 +1,7 @@
 package polybft
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/contractsapi"
@@ -14,7 +15,7 @@ import (
 func TestEventDBInsertRetry_GetEvents(t *testing.T) {
 	receipt := &types.Receipt{
 		Logs: []*types.Log{
-			createTestLogForTransferEvent(t, contracts.ValidatorSetContract, types.ZeroAddress, types.ZeroAddress, 10),
+			createTestLogForStakeChangedEvent(t, contracts.ValidatorSetContract, types.ZeroAddress, big.NewInt(10)),
 		},
 	}
 	receipt.SetStatus(types.ReceiptSuccess)
@@ -25,13 +26,13 @@ func TestEventDBInsertRetry_GetEvents(t *testing.T) {
 	}, true)
 	backend.On("GetReceiptsByHash", mock.Anything).Return([]*types.Receipt{receipt}, nil)
 
-	retryManager := &eventsGetter[*contractsapi.TransferEvent]{
+	retryManager := &eventsGetter[*contractsapi.StakeChangedEvent]{
 		blockchain: backend,
 		isValidLogFn: func(l *types.Log) bool {
 			return l.Address == contracts.ValidatorSetContract
 		},
-		parseEventFn: func(h *types.Header, l *ethgo.Log) (*contractsapi.TransferEvent, bool, error) {
-			var e contractsapi.TransferEvent
+		parseEventFn: func(h *types.Header, l *ethgo.Log) (*contractsapi.StakeChangedEvent, bool, error) {
+			var e contractsapi.StakeChangedEvent
 			doesMatch, err := e.ParseLog(l)
 
 			return &e, doesMatch, err
