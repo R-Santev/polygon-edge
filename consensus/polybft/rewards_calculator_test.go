@@ -7,7 +7,6 @@ import (
 	"github.com/0xPolygon/polygon-edge/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/umbracle/ethgo"
 )
@@ -15,53 +14,30 @@ import (
 func TestRewardsCalculator_getStakedBalance(t *testing.T) {
 	block := &types.Header{}
 
-	t.Run("returns error when GetStateProviderForBlock fails", func(t *testing.T) {
-		blockchainMock := new(blockchainMock)
-		blockchainMock.On("GetStateProviderForBlock", mock.Anything).Return(nil, assert.AnError)
-
-		calculator := &rewardsCalculator{
-			logger:     hclog.Default(),
-			blockchain: blockchainMock,
-		}
-
-		_, err := calculator.getStakedBalance(block)
-		assert.EqualError(t, err, ErrCannotGetSystemState.Error())
-	})
-
 	t.Run("returns error when systemState.GetStakedBalance fails", func(t *testing.T) {
-		blockchainMock := new(blockchainMock)
-		stateProviderMock := new(stateProviderMock)
 		systemStateMock := new(systemStateMock)
-
 		systemStateMock.On("GetStakedBalance").Return(nil, assert.AnError)
-		blockchainMock.On("GetStateProviderForBlock", block).Return(stateProviderMock, nil)
-		blockchainMock.On("GetSystemState", stateProviderMock).Return(systemStateMock)
 
 		calculator := &rewardsCalculator{
 			logger:     hclog.Default(),
-			blockchain: blockchainMock,
+			blockchain: nil,
 		}
 
-		_, err := calculator.getStakedBalance(block)
+		_, err := calculator.getStakedBalance(block, systemStateMock)
 		assert.EqualError(t, err, assert.AnError.Error())
 	})
 
 	t.Run("returns correct balance", func(t *testing.T) {
-		blockchainMock := new(blockchainMock)
-		stateProviderMock := new(stateProviderMock)
-		systemStateMock := new(systemStateMock)
-
 		expectedReward := big.NewInt(100)
+		systemStateMock := new(systemStateMock)
 		systemStateMock.On("GetStakedBalance").Return(expectedReward, nil)
-		blockchainMock.On("GetStateProviderForBlock", block).Return(stateProviderMock, nil)
-		blockchainMock.On("GetSystemState", stateProviderMock).Return(systemStateMock)
 
 		calculator := &rewardsCalculator{
 			logger:     hclog.Default(),
-			blockchain: blockchainMock,
+			blockchain: nil,
 		}
 
-		reward, err := calculator.getStakedBalance(block)
+		reward, err := calculator.getStakedBalance(block, systemStateMock)
 		assert.NoError(t, err)
 		assert.Equal(t, expectedReward, reward)
 	})

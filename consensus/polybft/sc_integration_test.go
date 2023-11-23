@@ -383,17 +383,9 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 			}
 		}
 
-		// Get total active staked amount
-		encoded, err := hex.DecodeHex("28f73148") // totalActiveStake()
-		require.NoError(t, err)
-		activeStakeRes := transition.Call2(types.Address{0x0}, contracts.ValidatorSetContract, encoded, nil, 1000000000000)
-		require.False(t, activeStakeRes.Failed())
-		totalActiveStake := new(big.Int).SetBytes(activeStakeRes.ReturnValue)
-
-		commitEpochTxValue := createTestCommitEpochTxValue(t, totalActiveStake)
-
-		commitEpoch := createTestCommitEpochInputWithVals(t, 1, accSet, polyBFTConfig.EpochSize)
-		input, err := commitEpoch.EncodeAbi()
+		commitEpochTxValue := createTestCommitEpochTxValue(t, transition)
+		commitEpochInput := createTestCommitEpochInputWithVals(t, 1, accSet, polyBFTConfig.EpochSize)
+		input, err := commitEpochInput.EncodeAbi()
 		require.NoError(t, err)
 
 		// Normally injecting balance to the system caller is handled by a higher order method in the executor.go
@@ -405,8 +397,8 @@ func TestIntegration_CommitEpoch(t *testing.T) {
 		require.NoError(t, result.Err)
 		t.Logf("Number of validators %d when we add %d of delegators, Gas used %+v\n", accSet.Len(), accSet.Len()*delegatorsPerValidator, result.GasUsed)
 
-		commitEpoch = createTestCommitEpochInputWithVals(t, 2, accSet, polyBFTConfig.EpochSize)
-		input, err = commitEpoch.EncodeAbi()
+		commitEpochInput = createTestCommitEpochInputWithVals(t, 2, accSet, polyBFTConfig.EpochSize)
+		input, err = commitEpochInput.EncodeAbi()
 		require.NoError(t, err)
 
 		transition.Txn().AddBalance(contracts.SystemCaller, commitEpochTxValue)

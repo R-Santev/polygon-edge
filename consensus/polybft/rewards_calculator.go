@@ -86,12 +86,17 @@ func NewRewardsCalculator(logger hclog.Logger, blockchain blockchainBackend) Rew
 }
 
 func (r *rewardsCalculator) GetMaxReward(block *types.Header) (*big.Int, error) {
-	stakedBalance, err := r.getStakedBalance(block)
+	systemState, err := r.getSystemState(block)
 	if err != nil {
 		return nil, err
 	}
 
-	baseReward, err := r.getMaxBaseReward(block)
+	stakedBalance, err := r.getStakedBalance(block, systemState)
+	if err != nil {
+		return nil, err
+	}
+
+	baseReward, err := r.getMaxBaseReward(block, systemState)
 	if err != nil {
 		return nil, err
 	}
@@ -101,12 +106,12 @@ func (r *rewardsCalculator) GetMaxReward(block *types.Header) (*big.Int, error) 
 		return nil, err
 	}
 
-	rsiBonus, err := r.getMaxRSIBonus(block)
+	rsiBonus, err := r.getMaxRSIBonus(block, systemState)
 	if err != nil {
 		return nil, err
 	}
 
-	macroFactor, err := r.getMacroFactor(block)
+	macroFactor, err := r.getMacroFactor(block, systemState)
 	if err != nil {
 		return nil, err
 	}
@@ -116,12 +121,7 @@ func (r *rewardsCalculator) GetMaxReward(block *types.Header) (*big.Int, error) 
 	return reward, nil
 }
 
-func (r *rewardsCalculator) getStakedBalance(block *types.Header) (*big.Int, error) {
-	systemState, err := r.getSystemState(block)
-	if err != nil {
-		return nil, err
-	}
-
+func (r *rewardsCalculator) getStakedBalance(block *types.Header, systemState SystemState) (*big.Int, error) {
 	reward, err := systemState.GetStakedBalance()
 	if err != nil {
 		return nil, err
@@ -130,12 +130,7 @@ func (r *rewardsCalculator) getStakedBalance(block *types.Header) (*big.Int, err
 	return reward, nil
 }
 
-func (r *rewardsCalculator) getMaxBaseReward(block *types.Header) (*BigNumDecimal, error) {
-	systemState, err := r.getSystemState(block)
-	if err != nil {
-		return nil, err
-	}
-
+func (r *rewardsCalculator) getMaxBaseReward(block *types.Header, systemState SystemState) (*BigNumDecimal, error) {
 	reward, err := systemState.GetBaseReward()
 	if err != nil {
 		return nil, err
@@ -150,12 +145,7 @@ func (r *rewardsCalculator) getVestingBonus(vestingWeeks uint64) (*big.Int, erro
 	return bonus, nil
 }
 
-func (r *rewardsCalculator) getMaxRSIBonus(block *types.Header) (*big.Int, error) {
-	systemState, err := r.getSystemState(block)
-	if err != nil {
-		return nil, err
-	}
-
+func (r *rewardsCalculator) getMaxRSIBonus(block *types.Header, systemState SystemState) (*big.Int, error) {
 	rsi, err := systemState.GetMaxRSI()
 	if err != nil {
 		return nil, err
@@ -164,12 +154,7 @@ func (r *rewardsCalculator) getMaxRSIBonus(block *types.Header) (*big.Int, error
 	return rsi, nil
 }
 
-func (r *rewardsCalculator) getMacroFactor(block *types.Header) (*big.Int, error) {
-	systemState, err := r.getSystemState(block)
-	if err != nil {
-		return nil, err
-	}
-
+func (r *rewardsCalculator) getMacroFactor(block *types.Header, systemState SystemState) (*big.Int, error) {
 	reward, err := systemState.GetMacroFactor()
 	if err != nil {
 		return nil, err

@@ -171,12 +171,12 @@ func (s *SystemStateImpl) GetMaxRSI() (maxRSI *big.Int, err error) {
 
 // GetStakedBalance H: fetch the total staked balance from the validators contract
 func (s *SystemStateImpl) GetStakedBalance() (*big.Int, error) {
-	rawOutput, err := s.validatorContract.Call("totalStake", ethgo.Latest)
+	rawOutput, err := s.validatorContract.Call("totalActiveStake", ethgo.Latest)
 	if err != nil {
 		return nil, err
 	}
 
-	stake, ok := rawOutput["0"].(*big.Int)
+	stake, ok := rawOutput["activeStake"].(*big.Int)
 	if !ok {
 		return nil, fmt.Errorf("failed to decode total stake")
 	}

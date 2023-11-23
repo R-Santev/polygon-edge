@@ -14,6 +14,8 @@ import (
 	bls "github.com/0xPolygon/polygon-edge/consensus/polybft/signer"
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/validator"
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/wallet"
+	"github.com/0xPolygon/polygon-edge/contracts"
+	"github.com/0xPolygon/polygon-edge/state"
 	"github.com/0xPolygon/polygon-edge/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
@@ -87,14 +89,13 @@ func createTestCommitEpochInput(t *testing.T, epochID uint64,
 	return commitEpoch
 }
 
-func createTestCommitEpochTxValue(t *testing.T, stakedBalance *big.Int) *big.Int {
+func createTestCommitEpochTxValue(t *testing.T, transition *state.Transition) *big.Int {
+	stateProvider := NewStateProvider(transition)
+	systemState := NewSystemState(contracts.ValidatorSetContract, contracts.StateReceiverContract, stateProvider)
+
 	blockchainMock := new(blockchainMock)
-	stateProviderMock := new(stateProviderMock)
-	systemStateMock := new(systemStateMock)
-	blockchainMock.On("GetStateProviderForBlock", mock.Anything).Return(stateProviderMock, nil)
-	blockchainMock.On("GetSystemState", stateProviderMock).Return(systemStateMock)
-	systemStateMock.On("GetStakedBalance").Return(stakedBalance, nil)
-	systemStateMock.On("GetBaseReward").Return(&BigNumDecimal{Numerator: big.NewInt(500), Denominator: big.NewInt(10000)}, nil)
+	blockchainMock.On("GetStateProviderForBlock", mock.Anything).Return(nil, nil).Once()
+	blockchainMock.On("GetSystemState", mock.Anything).Return(systemState, nil).Once()
 
 	rc := NewRewardsCalculator(hclog.NewNullLogger(), blockchainMock)
 
