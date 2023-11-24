@@ -7,6 +7,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/armon/go-metrics"
+	"github.com/golang/protobuf/ptypes/any"
+	"github.com/hashicorp/go-hclog"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"google.golang.org/grpc"
+
 	"github.com/0xPolygon/polygon-edge/blockchain"
 	"github.com/0xPolygon/polygon-edge/chain"
 	"github.com/0xPolygon/polygon-edge/forkmanager"
@@ -15,11 +21,6 @@ import (
 	"github.com/0xPolygon/polygon-edge/state/runtime"
 	"github.com/0xPolygon/polygon-edge/txpool/proto"
 	"github.com/0xPolygon/polygon-edge/types"
-	"github.com/armon/go-metrics"
-	"github.com/golang/protobuf/ptypes/any"
-	"github.com/hashicorp/go-hclog"
-	"github.com/libp2p/go-libp2p/core/peer"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -786,8 +787,6 @@ func (p *TxPool) addTx(origin txOrigin, tx *types.Transaction) error {
 
 	// initialize account for this address once or retrieve existing one
 	account := p.getOrCreateAccount(tx.From)
-	// populate currently free slots
-	slotsFree := p.gauge.freeSlots()
 
 	account.promoted.lock(true)
 	account.enqueued.lock(true)
@@ -824,10 +823,8 @@ func (p *TxPool) addTx(origin txOrigin, tx *types.Transaction) error {
 			// if tx with same nonce does exist and has same or better gas price -> return error
 			metrics.IncrCounter([]string{txPoolMetrics, "underpriced_tx"}, 1)
 
-			return ErrUnderpriced
+			return ErrReplacementUnderpriced
 		}
-
-		slotsFree += slotsRequired(oldTxWithSameNonce) // add old tx slots
 	} else {
 		if account.enqueued.length() == account.maxEnqueued && tx.Nonce != accountNonce {
 			return ErrMaxEnqueuedLimitReached
@@ -841,27 +838,43 @@ func (p *TxPool) addTx(origin txOrigin, tx *types.Transaction) error {
 		}
 	}
 
-	// check for overflow
-	if slotsRequired(tx) > slotsFree {
-		return ErrTxPoolOverflow
+	slotsAllocated := slotsRequired(tx)
+
+	var slotsFreed uint64
+	if oldTxWithSameNonce != nil {
+		slotsFreed = slotsRequired(oldTxWithSameNonce)
+	}
+
+	var slotsIncreased uint64
+	if slotsAllocated > slotsFreed {
+		slotsIncreased = slotsAllocated - slotsFreed
+		if !p.gauge.increaseWithinLimit(slotsIncreased) {
+			return ErrTxPoolOverflow
+		}
 	}
 
 	// add to index
 	if ok := p.index.add(tx); !ok {
 		metrics.IncrCounter([]string{txPoolMetrics, "already_known_tx"}, 1)
 
+		if slotsIncreased > 0 {
+			p.gauge.decrease(slotsIncreased)
+		}
+
 		return ErrAlreadyKnown
+	}
+
+	if slotsFreed > slotsAllocated {
+		p.gauge.decrease(slotsFreed - slotsAllocated)
 	}
 
 	if oldTxWithSameNonce != nil {
 		p.index.remove(oldTxWithSameNonce)
-		p.gauge.decrease(slotsRequired(oldTxWithSameNonce))
 	} else {
 		metrics.SetGauge([]string{txPoolMetrics, "added_tx"}, 1)
 	}
 
 	account.enqueue(tx, oldTxWithSameNonce != nil) // add or replace tx into account
-	p.gauge.increase(slotsRequired(tx))
 
 	go p.invokePromotion(tx, tx.Nonce <= accountNonce) // don't signal promotion for higher nonce txs
 

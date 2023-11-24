@@ -71,6 +71,11 @@ var (
 		"except for zero address and reward wallet if native token is used as reward token")
 )
 
+type contractInfo struct {
+	artifact *artifact.Artifact
+	address  types.Address
+}
+
 // generatePolyBftChainConfig creates and persists polybft chain configuration to the provided file path
 func (p *genesisParams) generatePolyBftChainConfig(o command.OutputFormatter) error {
 	// populate premine balance map
@@ -154,6 +159,7 @@ func (p *genesisParams) generatePolyBftChainConfig(o command.OutputFormatter) er
 		},
 		BlockTimeDrift:           p.blockTimeDrift,
 		BlockTrackerPollInterval: common.Duration{Duration: p.blockTrackerPollInterval},
+		ProxyContractsAdmin:      types.StringToAddress(p.proxyContractsAdmin),
 	}
 
 	// Disable london hardfork if burn contract address is not provided
@@ -170,6 +176,7 @@ func (p *genesisParams) generatePolyBftChainConfig(o command.OutputFormatter) er
 			Engine: map[string]interface{}{
 				string(server.PolyBFTConsensus): polyBftConfig,
 			},
+			BaseFeeChangeDenom: p.baseFeeChangeDenom,
 		},
 		Bootnodes: p.bootnodes,
 	}
@@ -327,17 +334,18 @@ func (p *genesisParams) deployContracts(
 	polybftConfig *polybft.PolyBFTConfig,
 	chainConfig *chain.Chain,
 	burnContractAddr types.Address) (map[types.Address]*chain.GenesisAccount, error) {
-	type contractInfo struct {
-		artifact *artifact.Artifact
-		address  types.Address
+	proxyToImplAddrMap := contracts.GetProxyImplementationMapping()
+	proxyAddresses := make([]types.Address, 0, len(proxyToImplAddrMap))
+
+	for proxyAddr := range proxyToImplAddrMap {
+		proxyAddresses = append(proxyAddresses, proxyAddr)
 	}
 
 	genesisContracts := []*contractInfo{
-		// Hydra modification: Unused contracts
 		// {
-		// State receiver contract
-		// artifact: contractsapi.StateReceiver,
-		// address:  contracts.StateReceiverContract,
+		// 	// State receiver contract
+		// 	artifact: contractsapi.StateReceiver,
+		// 	address:  contracts.StateReceiverContractV1,
 		// },
 		// {
 		// 	// ChildERC20 token contract
@@ -357,21 +365,21 @@ func (p *genesisParams) deployContracts(
 		{
 			// BLS contract
 			artifact: contractsapi.BLS,
-			address:  contracts.BLSContract,
+			address:  contracts.BLSContractV1,
 		},
 		{
 			// Merkle contract
 			artifact: contractsapi.Merkle,
-			address:  contracts.MerkleContract,
+			address:  contracts.MerkleContractV1,
 		},
 		// {
 		// 	// L2StateSender contract
 		// 	artifact: contractsapi.L2StateSender,
-		// 	address:  contracts.L2StateSenderContract,
+		// 	address:  contracts.L2StateSenderContractV1,
 		// },
 		{
 			artifact: contractsapi.ValidatorSet,
-			address:  contracts.ValidatorSetContract,
+			address:  contracts.ValidatorSetContractV1,
 		},
 		// Hydra modification: Unused contracts
 		// {
@@ -379,114 +387,54 @@ func (p *genesisParams) deployContracts(
 		// 	address:  contracts.RewardPoolContract,
 		// },
 		{
-			artifact: contractsapi.LiquidityToken,
-			address:  contracts.LiquidityTokenContract,
+			artifact: contractsapi.RewardPool,
+			address:  contracts.RewardPoolContractV1,
+		},
+		{artifact: contractsapi.LiquidityToken,
+			address: contracts.LiquidityTokenContract,
 		},
 	}
 
-	// if !params.nativeTokenConfig.IsMintable {
-	// 	genesisContracts = append(genesisContracts,
-	// 		&contractInfo{
-	// 			artifact: contractsapi.NativeERC20,
-	// 			address:  contracts.NativeERC20TokenContract,
-	// 		})
+	if !params.nativeTokenConfig.IsMintable {
+		genesisContracts = append(genesisContracts,
+			&contractInfo{
+				artifact: contractsapi.NativeERC20,
+				address:  contracts.NativeERC20TokenContractV1,
+			})
 
-	// 	// burn contract can be set only for non-mintable native token. If burn contract is set,
-	// 	// default EIP1559 contract will be deployed.
-	// 	if p.isBurnContractEnabled() {
-	// 		genesisContracts = append(genesisContracts,
-	// 			&contractInfo{
-	// 				artifact: contractsapi.EIP1559Burn,
-	// 				address:  burnContractAddr,
-	// 			})
-	// 	}
-	// } else {
-	// 	genesisContracts = append(genesisContracts,
-	// 		&contractInfo{
-	// 			artifact: contractsapi.NativeERC20Mintable,
-	// 			address:  contracts.NativeERC20TokenContract,
-	// 		})
-	// }
+		// burn contract can be set only for non-mintable native token. If burn contract is set,
+		// default EIP1559 contract will be deployed.
+		if p.isBurnContractEnabled() {
+			genesisContracts = append(genesisContracts,
+				&contractInfo{
+					artifact: contractsapi.EIP1559Burn,
+					address:  burnContractAddr,
+				})
 
-	// if len(params.bridgeAllowListAdmin) != 0 || len(params.bridgeBlockListAdmin) != 0 {
-	// 	// rootchain originated tokens predicates (with access lists)
-	// 	genesisContracts = append(genesisContracts,
-	// 		&contractInfo{
-	// 			artifact: contractsapi.ChildERC20PredicateACL,
-	// 			address:  contracts.ChildERC20PredicateContract,
-	// 		})
-
-	// 	genesisContracts = append(genesisContracts,
-	// 		&contractInfo{
-	// 			artifact: contractsapi.ChildERC721PredicateACL,
-	// 			address:  contracts.ChildERC721PredicateContract,
-	// 		})
-
-	// 	genesisContracts = append(genesisContracts,
-	// 		&contractInfo{
-	// 			artifact: contractsapi.ChildERC1155PredicateACL,
-	// 			address:  contracts.ChildERC1155PredicateContract,
-	// 		})
-
-	// 	// childchain originated tokens predicates (with access lists)
-	// 	genesisContracts = append(genesisContracts,
-	// 		&contractInfo{
-	// 			artifact: contractsapi.RootMintableERC20PredicateACL,
-	// 			address:  contracts.RootMintableERC20PredicateContract,
-	// 		})
-
-	// 	genesisContracts = append(genesisContracts,
-	// 		&contractInfo{
-	// 			artifact: contractsapi.RootMintableERC721PredicateACL,
-	// 			address:  contracts.RootMintableERC721PredicateContract,
-	// 		})
-
-	// 	genesisContracts = append(genesisContracts,
-	// 		&contractInfo{
-	// 			artifact: contractsapi.RootMintableERC1155PredicateACL,
-	// 			address:  contracts.RootMintableERC1155PredicateContract,
-	// 		})
-	// } else {
-	// 	// rootchain originated tokens predicates
-	// 	genesisContracts = append(genesisContracts,
-	// 		&contractInfo{
-	// 			artifact: contractsapi.ChildERC20Predicate,
-	// 			address:  contracts.ChildERC20PredicateContract,
-	// 		})
-
-	// genesisContracts = append(genesisContracts,
-	// 	&contractInfo{
-	// 		artifact: contractsapi.ChildERC721Predicate,
-	// 		address:  contracts.ChildERC721PredicateContract,
-	// 	})
-
-	// 	genesisContracts = append(genesisContracts,
-	// 		&contractInfo{
-	// 			artifact: contractsapi.ChildERC1155Predicate,
-	// 			address:  contracts.ChildERC1155PredicateContract,
-	// 		})
-
-	// 	// childchain originated tokens predicates
-	// 	genesisContracts = append(genesisContracts,
-	// 		&contractInfo{
-	// 			artifact: contractsapi.RootMintableERC20Predicate,
-	// 			address:  contracts.RootMintableERC20PredicateContract,
-	// 		})
-
-	// 	genesisContracts = append(genesisContracts,
-	// 		&contractInfo{
-	// 			artifact: contractsapi.RootMintableERC721Predicate,
-	// 			address:  contracts.RootMintableERC721PredicateContract,
-	// 		})
-
-	// 	genesisContracts = append(genesisContracts,
-	// 		&contractInfo{
-	// 			artifact: contractsapi.RootMintableERC1155Predicate,
-	// 			address:  contracts.RootMintableERC1155PredicateContract,
-	// 		})
-	// }
+			proxyAddresses = append(proxyAddresses, contracts.DefaultBurnContract)
+		}
+	} else {
+		genesisContracts = append(genesisContracts,
+			&contractInfo{
+				artifact: contractsapi.NativeERC20Mintable,
+				address:  contracts.NativeERC20TokenContractV1,
+			})
+	}
 
 	allocations := make(map[types.Address]*chain.GenesisAccount, len(genesisContracts)+1)
+
+	if rewardTokenByteCode != nil {
+		// if reward token is provided in genesis then, add it to allocations
+		// to RewardTokenContract address and update Polybft config
+		allocations[contracts.RewardTokenContractV1] = &chain.GenesisAccount{
+			Balance: big.NewInt(0),
+			Code:    rewardTokenByteCode,
+		}
+
+		proxyAddresses = append(proxyAddresses, contracts.RewardTokenContract)
+	}
+
+	genesisContracts = append(genesisContracts, getProxyContractsInfo(proxyAddresses)...)
 
 	for _, contract := range genesisContracts {
 		allocations[contract.address] = &chain.GenesisAccount{
@@ -577,4 +525,17 @@ func stringSliceToAddressSlice(addrs []string) []types.Address {
 	}
 
 	return res
+}
+
+func getProxyContractsInfo(addresses []types.Address) []*contractInfo {
+	result := make([]*contractInfo, len(addresses))
+
+	for i, proxyAddress := range addresses {
+		result[i] = &contractInfo{
+			artifact: contractsapi.GenesisProxy,
+			address:  proxyAddress,
+		}
+	}
+
+	return result
 }

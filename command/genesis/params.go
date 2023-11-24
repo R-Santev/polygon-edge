@@ -17,6 +17,7 @@ import (
 	"github.com/0xPolygon/polygon-edge/consensus/ibft/fork"
 	"github.com/0xPolygon/polygon-edge/consensus/ibft/signer"
 	"github.com/0xPolygon/polygon-edge/consensus/polybft"
+	"github.com/0xPolygon/polygon-edge/contracts"
 	"github.com/0xPolygon/polygon-edge/contracts/staking"
 	stakingHelper "github.com/0xPolygon/polygon-edge/helper/staking"
 	"github.com/0xPolygon/polygon-edge/server"
@@ -40,6 +41,8 @@ const (
 	rewardTokenCodeFlag          = "reward-token-code"
 	rewardWalletFlag             = "reward-wallet"
 	blockTrackerPollIntervalFlag = "block-tracker-poll-interval"
+	proxyContractsAdminFlag      = "proxy-contracts-admin"
+	baseFeeChangeDenomFlag       = "base-fee-change-denom"
 
 	defaultNativeTokenName     = "Polygon"
 	defaultNativeTokenSymbol   = "MATIC"
@@ -65,6 +68,7 @@ var (
 	errRewardWalletAmountZero   = errors.New("reward wallet amount can not be zero or negative")
 	errReserveAccMustBePremined = errors.New("it is mandatory to premine reserve account (0x0 address)")
 	errBlockTrackerPollInterval = errors.New("block tracker poll interval must be greater than 0")
+	errBaseFeeChangeDenomZero   = errors.New("base fee change denominator must be greater than 0")
 )
 
 type genesisParams struct {
@@ -134,6 +138,10 @@ type genesisParams struct {
 	rewardWallet    string
 
 	blockTrackerPollInterval time.Duration
+
+	proxyContractsAdmin string
+
+	baseFeeChangeDenom uint64
 }
 
 func (p *genesisParams) validateFlags() error {
@@ -153,6 +161,10 @@ func (p *genesisParams) validateFlags() error {
 		return err
 	}
 
+	if p.baseFeeChangeDenom == 0 {
+		return errBaseFeeChangeDenomZero
+	}
+
 	if p.isPolyBFTConsensus() {
 		if err := p.extractNativeTokenMetadata(); err != nil {
 			return err
@@ -170,6 +182,10 @@ func (p *genesisParams) validateFlags() error {
 		// if err := p.validatePremineInfo(); err != nil {
 		// 	return err
 		// }
+
+		if err := p.validateProxyContractsAdmin(); err != nil {
+			return err
+		}
 	}
 
 	// Check if the genesis file already exists
@@ -402,9 +418,10 @@ func (p *genesisParams) initGenesisConfig() error {
 			GasUsed:    command.DefaultGenesisGasUsed,
 		},
 		Params: &chain.Params{
-			ChainID: int64(p.chainID),
-			Forks:   enabledForks,
-			Engine:  p.consensusEngineConfig,
+			ChainID:            int64(p.chainID),
+			Forks:              enabledForks,
+			Engine:             p.consensusEngineConfig,
+			BaseFeeChangeDenom: p.baseFeeChangeDenom,
 		},
 		Bootnodes: p.bootnodes,
 	}
@@ -545,6 +562,23 @@ func (p *genesisParams) validateBurnContract() error {
 				return errors.New("it is not allowed to deploy burn contract to 0x0 address")
 			}
 		}
+	}
+
+	return nil
+}
+
+func (p *genesisParams) validateProxyContractsAdmin() error {
+	if strings.TrimSpace(p.proxyContractsAdmin) == "" {
+		return errors.New("proxy contracts admin address must be set")
+	}
+
+	proxyContractsAdminAddr := types.StringToAddress(p.proxyContractsAdmin)
+	if proxyContractsAdminAddr == types.ZeroAddress {
+		return errors.New("proxy contracts admin address must not be zero address")
+	}
+
+	if proxyContractsAdminAddr == contracts.SystemCaller {
+		return errors.New("proxy contracts admin address must not be system caller address")
 	}
 
 	return nil

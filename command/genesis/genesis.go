@@ -98,6 +98,13 @@ func setFlags(cmd *cobra.Command) {
 		"the epoch size for the chain",
 	)
 
+	cmd.Flags().StringVar(
+		&params.proxyContractsAdmin,
+		proxyContractsAdminFlag,
+		"",
+		"admin for proxy contracts",
+	)
+
 	// IBFT Validators
 	{
 		cmd.Flags().StringVar(
@@ -241,6 +248,13 @@ func setFlags(cmd *cobra.Command) {
 			blockTrackerPollIntervalFlag,
 			defaultBlockTrackerPollInterval,
 			"interval (number of seconds) at which block tracker polls for latest block at rootchain",
+		)
+
+		cmd.Flags().Uint64Var(
+			&params.baseFeeChangeDenom,
+			baseFeeChangeDenomFlag,
+			command.DefaultGenesisBaseFeeChangeDenom,
+			"represents the value to bound the amount the base fee can change between blocks.",
 		)
 	}
 

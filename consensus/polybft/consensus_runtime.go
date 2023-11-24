@@ -239,6 +239,7 @@ func (c *consensusRuntime) initStakeManager(logger hcf.Logger) error {
 		contracts.ValidatorSetContract,
 		int(c.config.PolyBFTConfig.MaxValidatorSetSize),
 		c.config.blockchain,
+		c.config.polybftBackend,
 	)
 
 	return err
@@ -489,10 +490,6 @@ func (c *consensusRuntime) restartEpoch(header *types.Header) (*epochMetadata, e
 	}
 
 	if err := c.stateSyncManager.PostEpoch(reqObj); err != nil {
-		return nil, err
-	}
-
-	if err := c.stakeManager.PostEpoch(reqObj); err != nil {
 		return nil, err
 	}
 

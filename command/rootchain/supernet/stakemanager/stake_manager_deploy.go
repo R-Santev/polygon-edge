@@ -1,8 +1,8 @@
 package stakemanager
 
 // import (
+// 	"errors"
 // 	"fmt"
-
 // 	"github.com/0xPolygon/polygon-edge/chain"
 // 	"github.com/0xPolygon/polygon-edge/command"
 // 	"github.com/0xPolygon/polygon-edge/command/helper"
@@ -75,13 +75,20 @@ package stakemanager
 // 		rootHelper.StakeTokenFlagDesc,
 // 	)
 
-// 	cmd.Flags().BoolVar(
-// 		&params.isTestMode,
-// 		rootHelper.TestModeFlag,
-// 		false,
-// 		"indicates if command is run in test mode. If test mode is used contract will be deployed using test account "+
-// 			"and a test stake ERC20 token will be deployed to be used for staking",
-// 	)
+// cmd.Flags().StringVar(
+// 	&params.proxyContractsAdmin,
+// 	rootHelper.ProxyContractsAdminFlag,
+// 	"",
+// 	rootHelper.ProxyContractsAdminDesc,
+// )
+
+// cmd.Flags().BoolVar(
+// 	&params.isTestMode,
+// 	rootHelper.TestModeFlag,
+// 	false,
+// 	"indicates if command is run in test mode. If test mode is used contract will be deployed using test account "+
+// 		"and a test stake ERC20 token will be deployed to be used for staking",
+// )
 
 // 	cmd.MarkFlagsMutuallyExclusive(polybftsecrets.AccountDirFlag, polybftsecrets.AccountConfigFlag)
 // 	cmd.MarkFlagsMutuallyExclusive(polybftsecrets.PrivateKeyFlag, polybftsecrets.AccountConfigFlag)
@@ -146,11 +153,22 @@ package stakemanager
 // 				return err
 // 			}
 
-// 			outputter.WriteCommandResult(&rootHelper.MessageResult{
-// 				Message: "[STAKEMANAGER - DEPLOY] Successfully deployed StakeManager contract",
-// 			})
+// deploy stake manager proxy
+// receipt, err := rootHelper.DeployProxyContract(txRelayer, deployerKey, "StakeManagerProxy",
+// 	types.StringToAddress(params.proxyContractsAdmin), contractAddress)
+// if err != nil {
+// 	return err
+// }
 
-// 			stakeManagerAddress = contractAddress
+// if receipt == nil || receipt.Status != uint64(types.ReceiptSuccess) {
+// 	return errors.New("deployment of StakeManagerProxy contract failed")
+// }
+
+// outputter.WriteCommandResult(&rootHelper.MessageResult{
+// 	Message: "[STAKEMANAGER - DEPLOY] Successfully deployed StakeManager contract",
+// })
+
+// stakeManagerAddress = types.Address(receipt.ContractAddress)
 
 // 			return nil
 // 		}
@@ -220,14 +238,13 @@ package stakemanager
 // 	return nil
 // }
 
-// // initializeStakeManager invokes initialize function on StakeManager contract
+// initializeStakeManager invokes initialize function on StakeManager contract
 // func initializeStakeManager(cmdOutput command.OutputFormatter,
 // 	txRelayer txrelayer.TxRelayer,
 // 	stakeManagerAddress types.Address,
 // 	stakeTokenAddress types.Address,
 // 	deployerKey ethgo.Key) error {
-// 	initFn := &contractsapi.InitializeStakeManagerFn{MATIC_: stakeTokenAddress}
-
+// 	initFn := &contractsapi.InitializeStakeManagerFn{NewStakingToken: stakeTokenAddress}
 // 	input, err := initFn.EncodeAbi()
 // 	if err != nil {
 // 		return err

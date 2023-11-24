@@ -195,13 +195,13 @@ package polybft
 // 			name:         "Rootchain call returns an error",
 // 			checkpointID: "",
 // 			returnError:  errors.New("internal error"),
-// 			errSubstring: "failed to invoke currentCheckpointId function on the rootchain",
+// 			errSubstring: "failed to invoke currentCheckpointBlockNumber function on the rootchain",
 // 		},
 // 		{
 // 			name:         "Failed to parse return value from rootchain",
 // 			checkpointID: "Hello World!",
 // 			returnError:  error(nil),
-// 			errSubstring: "failed to convert current checkpoint id",
+// 			errSubstring: "failed to convert current checkpoint block number",
 // 		},
 // 	}
 
@@ -222,7 +222,8 @@ package polybft
 // 				key:              acc.Ecdsa,
 // 				logger:           hclog.NewNullLogger(),
 // 			}
-// 			actualCheckpointID, err := checkpointMgr.getLatestCheckpointBlock()
+// 			actualCheckpointID, err := getCurrentCheckpointBlock(checkpointMgr.rootChainRelayer,
+// 				checkpointMgr.checkpointManagerAddr)
 // 			if c.errSubstring == "" {
 // 				expectedCheckpointID, err := strconv.ParseUint(c.checkpointID, 0, 64)
 // 				require.NoError(t, err)
@@ -495,120 +496,120 @@ package polybft
 // 	require.NoError(t, err)
 // 	require.NotNil(t, proof)
 
-// 	t.Run("Generate and validate exit proof", func(t *testing.T) {
-// 		t.Parallel()
-// 		// verify generated proof on desired tree
-// 		require.NoError(t, merkle.VerifyProof(correctBlockToGetExit, encodedEvents[1], proof.Data, tree.Hash()))
-// 	})
+// // 	t.Run("Generate and validate exit proof", func(t *testing.T) {
+// // 		t.Parallel()
+// // 		// verify generated proof on desired tree
+// // 		require.NoError(t, merkle.VerifyProof(correctBlockToGetExit, encodedEvents[1], proof.Data, tree.Hash()))
+// // 	})
 
-// 	t.Run("Generate and validate exit proof - invalid proof", func(t *testing.T) {
-// 		t.Parallel()
+// // 	t.Run("Generate and validate exit proof - invalid proof", func(t *testing.T) {
+// // 		t.Parallel()
 
-// 		// copy and make proof invalid
-// 		invalidProof := make([]types.Hash, len(proof.Data))
-// 		copy(invalidProof, proof.Data)
-// 		invalidProof[0][0]++
+// // 		// copy and make proof invalid
+// // 		invalidProof := make([]types.Hash, len(proof.Data))
+// // 		copy(invalidProof, proof.Data)
+// // 		invalidProof[0][0]++
 
-// 		// verify generated proof on desired tree
-// 		require.ErrorContains(t, merkle.VerifyProof(correctBlockToGetExit,
-// 			encodedEvents[1], invalidProof, tree.Hash()), "not a member of merkle tree")
-// 	})
+// // 		// verify generated proof on desired tree
+// // 		require.ErrorContains(t, merkle.VerifyProof(correctBlockToGetExit,
+// // 			encodedEvents[1], invalidProof, tree.Hash()), "not a member of merkle tree")
+// // 	})
 
-// 	t.Run("Generate exit proof - no event", func(t *testing.T) {
-// 		t.Parallel()
+// // 	t.Run("Generate exit proof - no event", func(t *testing.T) {
+// // 		t.Parallel()
 
-// 		_, err := checkpointMgr.GenerateExitProof(21)
-// 		require.ErrorContains(t, err, "could not find any exit event that has an id")
-// 	})
+// // 		_, err := checkpointMgr.GenerateExitProof(21)
+// // 		require.ErrorContains(t, err, "could not find any exit event that has an id")
+// // 	})
 
-// 	t.Run("Generate exit proof - future lookup where checkpoint not yet submitted", func(t *testing.T) {
-// 		t.Parallel()
+// // 	t.Run("Generate exit proof - future lookup where checkpoint not yet submitted", func(t *testing.T) {
+// // 		t.Parallel()
 
-// 		// setup mocks for invalid case
-// 		notFoundCheckpointReturn, err := contractsapi.GetCheckpointBlockABIResponse.Encode(map[string]interface{}{
-// 			"isFound":         false,
-// 			"checkpointBlock": 0,
-// 		})
-// 		require.NoError(t, err)
+// // 		// setup mocks for invalid case
+// // 		notFoundCheckpointReturn, err := contractsapi.GetCheckpointBlockABIResponse.Encode(map[string]interface{}{
+// // 			"isFound":         false,
+// // 			"checkpointBlock": 0,
+// // 		})
+// // 		require.NoError(t, err)
 
-// 		getCheckpointBlockFn.BlockNumber = new(big.Int).SetUint64(futureBlockToGetExit)
-// 		inputTwo, err := getCheckpointBlockFn.EncodeAbi()
-// 		require.NoError(t, err)
+// // 		getCheckpointBlockFn.BlockNumber = new(big.Int).SetUint64(futureBlockToGetExit)
+// // 		inputTwo, err := getCheckpointBlockFn.EncodeAbi()
+// // 		require.NoError(t, err)
 
-// 		dummyTxRelayer.On("Call", ethgo.ZeroAddress, ethgo.ZeroAddress, inputTwo).
-// 			Return(hex.EncodeToString(notFoundCheckpointReturn), error(nil))
+// // 		dummyTxRelayer.On("Call", ethgo.ZeroAddress, ethgo.ZeroAddress, inputTwo).
+// // 			Return(hex.EncodeToString(notFoundCheckpointReturn), error(nil))
 
-// 		_, err = checkpointMgr.GenerateExitProof(futureBlockToGetExit)
-// 		require.ErrorContains(t, err, "checkpoint block not found for exit ID")
-// 	})
-// }
+// // 		_, err = checkpointMgr.GenerateExitProof(futureBlockToGetExit)
+// // 		require.ErrorContains(t, err, "checkpoint block not found for exit ID")
+// // 	})
+// // }
 
-// var _ txrelayer.TxRelayer = (*dummyTxRelayer)(nil)
+// // var _ txrelayer.TxRelayer = (*dummyTxRelayer)(nil)
 
-// type dummyTxRelayer struct {
-// 	mock.Mock
+// // type dummyTxRelayer struct {
+// // 	mock.Mock
 
-// 	test             *testing.T
-// 	checkpointBlocks []uint64
-// }
+// // 	test             *testing.T
+// // 	checkpointBlocks []uint64
+// // }
 
-// func newDummyTxRelayer(t *testing.T) *dummyTxRelayer {
-// 	t.Helper()
+// // func newDummyTxRelayer(t *testing.T) *dummyTxRelayer {
+// // 	t.Helper()
 
-// 	return &dummyTxRelayer{test: t}
-// }
+// // 	return &dummyTxRelayer{test: t}
+// // }
 
-// func (d *dummyTxRelayer) Call(from ethgo.Address, to ethgo.Address, input []byte) (string, error) {
-// 	args := d.Called(from, to, input)
+// // func (d *dummyTxRelayer) Call(from ethgo.Address, to ethgo.Address, input []byte) (string, error) {
+// // 	args := d.Called(from, to, input)
 
-// 	return args.String(0), args.Error(1)
-// }
+// // 	return args.String(0), args.Error(1)
+// // }
 
-// func (d *dummyTxRelayer) SendTransaction(transaction *ethgo.Transaction, key ethgo.Key) (*ethgo.Receipt, error) {
-// 	blockNumber := getBlockNumberCheckpointSubmitInput(d.test, transaction.Input)
-// 	d.checkpointBlocks = append(d.checkpointBlocks, blockNumber)
-// 	args := d.Called(transaction, key)
+// // func (d *dummyTxRelayer) SendTransaction(transaction *ethgo.Transaction, key ethgo.Key) (*ethgo.Receipt, error) {
+// // 	blockNumber := getBlockNumberCheckpointSubmitInput(d.test, transaction.Input)
+// // 	d.checkpointBlocks = append(d.checkpointBlocks, blockNumber)
+// // 	args := d.Called(transaction, key)
 
-// 	return args.Get(0).(*ethgo.Receipt), args.Error(1) //nolint:forcetypeassert
-// }
+// // 	return args.Get(0).(*ethgo.Receipt), args.Error(1) //nolint:forcetypeassert
+// // }
 
-// // SendTransactionLocal sends non-signed transaction (this is only for testing purposes)
-// func (d *dummyTxRelayer) SendTransactionLocal(txn *ethgo.Transaction) (*ethgo.Receipt, error) {
-// 	args := d.Called(txn)
+// // // SendTransactionLocal sends non-signed transaction (this is only for testing purposes)
+// // func (d *dummyTxRelayer) SendTransactionLocal(txn *ethgo.Transaction) (*ethgo.Receipt, error) {
+// // 	args := d.Called(txn)
 
-// 	return args.Get(0).(*ethgo.Receipt), args.Error(1) //nolint:forcetypeassert
-// }
+// // 	return args.Get(0).(*ethgo.Receipt), args.Error(1) //nolint:forcetypeassert
+// // }
 
-// func (d *dummyTxRelayer) Client() *jsonrpc.Client {
-// 	return nil
-// }
+// // func (d *dummyTxRelayer) Client() *jsonrpc.Client {
+// // 	return nil
+// // }
 
-// func getBlockNumberCheckpointSubmitInput(t *testing.T, input []byte) uint64 {
-// 	t.Helper()
+// // func getBlockNumberCheckpointSubmitInput(t *testing.T, input []byte) uint64 {
+// // 	t.Helper()
 
-// 	submit := &contractsapi.SubmitCheckpointManagerFn{}
-// 	require.NoError(t, submit.DecodeAbi(input))
+// // 	submit := &contractsapi.SubmitCheckpointManagerFn{}
+// // 	require.NoError(t, submit.DecodeAbi(input))
 
-// 	return submit.Checkpoint.BlockNumber.Uint64()
-// }
+// // 	return submit.Checkpoint.BlockNumber.Uint64()
+// // }
 
-// func createTestLogForExitEvent(t *testing.T, exitEventID uint64) *types.Log {
-// 	t.Helper()
+// // func createTestLogForExitEvent(t *testing.T, exitEventID uint64) *types.Log {
+// // 	t.Helper()
 
-// 	var exitEvent contractsapi.L2StateSyncedEvent
+// // 	var exitEvent contractsapi.L2StateSyncedEvent
 
-// 	topics := make([]types.Hash, 4)
-// 	topics[0] = types.Hash(exitEvent.Sig())
-// 	topics[1] = types.BytesToHash(common.EncodeUint64ToBytes(exitEventID))
-// 	topics[2] = types.BytesToHash(types.StringToAddress("0x1111").Bytes())
-// 	topics[3] = types.BytesToHash(types.StringToAddress("0x2222").Bytes())
-// 	someType := abi.MustNewType("tuple(string firstName, string lastName)")
-// 	encodedData, err := someType.Encode(map[string]string{"firstName": "John", "lastName": "Doe"})
-// 	require.NoError(t, err)
+// // 	topics := make([]types.Hash, 4)
+// // 	topics[0] = types.Hash(exitEvent.Sig())
+// // 	topics[1] = types.BytesToHash(common.EncodeUint64ToBytes(exitEventID))
+// // 	topics[2] = types.BytesToHash(types.StringToAddress("0x1111").Bytes())
+// // 	topics[3] = types.BytesToHash(types.StringToAddress("0x2222").Bytes())
+// // 	someType := abi.MustNewType("tuple(string firstName, string lastName)")
+// // 	encodedData, err := someType.Encode(map[string]string{"firstName": "John", "lastName": "Doe"})
+// // 	require.NoError(t, err)
 
-// 	return &types.Log{
-// 		Address: contracts.L2StateSenderContract,
-// 		Topics:  topics,
-// 		Data:    encodedData,
-// 	}
-// }
+// // 	return &types.Log{
+// // 		Address: contracts.L2StateSenderContract,
+// // 		Topics:  topics,
+// // 		Data:    encodedData,
+// // 	}
+// // }

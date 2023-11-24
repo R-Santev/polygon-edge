@@ -54,6 +54,8 @@ var (
 	RootERC721                      *artifact.Artifact
 	RootERC1155                     *artifact.Artifact
 	EIP1559Burn                     *artifact.Artifact
+	GenesisProxy                    *artifact.Artifact
+	TransparentUpgradeableProxy     *artifact.Artifact
 
 	// test smart contracts
 	//go:embed test-contracts/*
@@ -281,12 +283,30 @@ func init() {
 	// 	log.Fatal(err)
 	// }
 
-	// Hydra modification: initialize ChildValidatorSet artifacts
 	ValidatorSet, err = artifact.DecodeArtifact([]byte(ChildValidatorSetArtifact))
-	ChildValidatorSet, err = artifact.DecodeArtifact([]byte(ChildValidatorSetArtifact))
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// H_MODIFY: initialize ChildValidatorSet artifacts
+	ChildValidatorSet, err = artifact.DecodeArtifact([]byte(ChildValidatorSetArtifact))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	LiquidityToken, err = artifact.DecodeArtifact([]byte(LiquidityTokenArtifact))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	GenesisProxy, err = artifact.DecodeArtifact([]byte(GenesisProxyArtifact))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	TransparentUpgradeableProxy, err = artifact.DecodeArtifact([]byte(TransparentUpgradeableProxyArtifact))
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func readTestContractContent(contractFileName string) []byte {

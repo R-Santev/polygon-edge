@@ -38,8 +38,10 @@ package e2e
 // 		amount                = 100
 // 		numBlockConfirmations = 2
 // 		// make epoch size long enough, so that all exit events are processed within the same epoch
-// 		epochSize  = 30
-// 		sprintSize = uint64(5)
+// 		epochSize            = 30
+// 		sprintSize           = uint64(5)
+// 		numberOfAttempts     = 5
+// 		stateSyncedLogsCount = 1
 // 	)
 
 // 	receiversAddrs := make([]types.Address, transfersCount)
@@ -105,7 +107,7 @@ package e2e
 // 	require.NoError(t, err)
 
 // 	// assert that all deposits are executed successfully
-// 	checkStateSyncResultLogs(t, logs, 1)
+// 	checkStateSyncResultLogs(t, logs, stateSyncedLogsCount)
 
 // 	// check validator balance got increased by deposited amount
 // 	balance, err := childEthEndpoint.GetBalance(ethgo.Address(senderAccount.Address()), ethgo.Latest)
@@ -183,16 +185,46 @@ package e2e
 
 // 		currentEpoch := currentExtra.Checkpoint.EpochNumber
 
-// 		require.NoError(t, waitForRootchainEpoch(currentEpoch, 3*time.Minute,
-// 			rootchainTxRelayer, polybftCfg.Bridge.CheckpointManagerAddr))
-
 // 		exitHelper := polybftCfg.Bridge.ExitHelperAddr
 // 		childJSONRPC := validatorSrv.JSONRPCAddr()
 
-// 		for exitEventID := uint64(1); exitEventID <= transfersCount; exitEventID++ {
-// 			// send exit transaction to exit helper
-// 			err = cluster.Bridge.SendExitTransaction(exitHelper, exitEventID, childJSONRPC)
-// 			require.NoError(t, err)
+// 		successfullExitTransactions := make([]bool, transfersCount)
+
+// 		for i := 0; i < numberOfAttempts; i++ {
+// 			t.Log("Number of attempts: ", i+1)
+
+// 			require.NoError(t, waitForRootchainEpoch(currentEpoch+uint64(i), 3*time.Minute,
+// 				rootchainTxRelayer, polybftCfg.Bridge.CheckpointManagerAddr))
+
+// 			for exitEventID := uint64(1); exitEventID <= transfersCount; exitEventID++ {
+// 				if successfullExitTransactions[exitEventID-1] {
+// 					continue
+// 				}
+
+// 				// send exit transaction to exit helper
+// 				if err = cluster.Bridge.SendExitTransaction(exitHelper, exitEventID, childJSONRPC); err == nil {
+// 					successfullExitTransactions[exitEventID-1] = true
+
+// 					continue
+// 				}
+
+// 				if i == numberOfAttempts-1 {
+// 					require.NoError(t, err)
+// 				}
+// 			}
+
+// 			allExitsSuccessfull := true
+// 			for _, isSuccessfull := range successfullExitTransactions {
+// 				if !isSuccessfull {
+// 					allExitsSuccessfull = false
+
+// 					break
+// 				}
+// 			}
+
+// 			if allExitsSuccessfull {
+// 				break
+// 			}
 // 		}
 
 // 		// assert that receiver's balances on RootERC20 smart contract are expected
@@ -426,8 +458,10 @@ package e2e
 
 // func TestE2E_Bridge_ERC721Transfer(t *testing.T) {
 // 	const (
-// 		transfersCount = 4
-// 		epochSize      = 5
+// 		transfersCount       = 4
+// 		epochSize            = 5
+// 		numberOfAttempts     = 4
+// 		stateSyncedLogsCount = 2
 // 	)
 
 // 	minter, err := ethgow.GenerateKey()
@@ -504,16 +538,24 @@ package e2e
 // 	// the transactions are processed and there should be a success events
 // 	var stateSyncedResult contractsapi.StateSyncResultEvent
 
-// 	logs, err := getFilteredLogs(stateSyncedResult.Sig(), 0, 50, childEthEndpoint)
-// 	require.NoError(t, err)
+// 	for i := 0; i < numberOfAttempts; i++ {
+// 		logs, err := getFilteredLogs(stateSyncedResult.Sig(), 0, uint64(50+i*epochSize), childEthEndpoint)
+// 		require.NoError(t, err)
+
+// 		if len(logs) == stateSyncedLogsCount || i == numberOfAttempts-1 {
+// 			// assert that all deposits are executed successfully.
+// 			// All deposits are sent using a single transaction, so arbitrary message bridge emits two state sync events:
+// 			// MAP_TOKEN_SIG and DEPOSIT_BATCH_SIG state sync events
+// 			checkStateSyncResultLogs(t, logs, stateSyncedLogsCount)
+
+// 			break
+// 		}
+
+// 		require.NoError(t, cluster.WaitForBlock(uint64(50+(i+1)*epochSize), 1*time.Minute))
+// 	}
 
 // 	txRelayer, err := txrelayer.NewTxRelayer(txrelayer.WithClient(validatorSrv.JSONRPC()))
 // 	require.NoError(t, err)
-
-// 	// assert that all deposits are executed successfully.
-// 	// All deposits are sent using a single transaction, so arbitrary message bridge emits two state sync events:
-// 	// MAP_TOKEN_SIG and DEPOSIT_BATCH_SIG state sync events
-// 	checkStateSyncResultLogs(t, logs, 2)
 
 // 	// retrieve child token address (from both chains, and assert they are the same)
 // 	l1ChildTokenAddr := getChildToken(t, contractsapi.RootERC721Predicate.Abi, polybftCfg.Bridge.RootERC721PredicateAddr,
@@ -577,9 +619,11 @@ package e2e
 
 // func TestE2E_Bridge_ERC1155Transfer(t *testing.T) {
 // 	const (
-// 		transfersCount = 5
-// 		amount         = 100
-// 		epochSize      = 5
+// 		transfersCount       = 5
+// 		amount               = 100
+// 		epochSize            = 5
+// 		numberOfAttempts     = 4
+// 		stateSyncedLogsCount = 2
 // 	)
 
 // 	minter, err := ethgow.GenerateKey()
@@ -659,16 +703,24 @@ package e2e
 // 	// the transactions are processed and there should be a success events
 // 	var stateSyncedResult contractsapi.StateSyncResultEvent
 
-// 	logs, err := getFilteredLogs(stateSyncedResult.Sig(), 0, 50, childEthEndpoint)
-// 	require.NoError(t, err)
+// 	for i := 0; i < numberOfAttempts; i++ {
+// 		logs, err := getFilteredLogs(stateSyncedResult.Sig(), 0, uint64(50+i*epochSize), childEthEndpoint)
+// 		require.NoError(t, err)
+
+// 		if len(logs) == stateSyncedLogsCount || i == numberOfAttempts-1 {
+// 			// assert that all deposits are executed successfully.
+// 			// All deposits are sent using a single transaction, so arbitrary message bridge emits two state sync events:
+// 			// MAP_TOKEN_SIG and DEPOSIT_BATCH_SIG state sync events
+// 			checkStateSyncResultLogs(t, logs, stateSyncedLogsCount)
+
+// 			break
+// 		}
+
+// 		require.NoError(t, cluster.WaitForBlock(uint64(50+(i+1)*epochSize), 1*time.Minute))
+// 	}
 
 // 	txRelayer, err := txrelayer.NewTxRelayer(txrelayer.WithClient(validatorSrv.JSONRPC()))
 // 	require.NoError(t, err)
-
-// 	// assert that all deposits are executed successfully.
-// 	// All deposits are sent using a single transaction, so arbitrary message bridge emits two state sync events:
-// 	// MAP_TOKEN_SIG and DEPOSIT_BATCH_SIG state sync events
-// 	checkStateSyncResultLogs(t, logs, 2)
 
 // 	// retrieve child token address
 // 	l1ChildTokenAddr := getChildToken(t, contractsapi.RootERC1155Predicate.Abi, polybftCfg.Bridge.RootERC1155PredicateAddr,
@@ -766,8 +818,9 @@ package e2e
 // 		transfersCount = uint64(4)
 // 		amount         = 100
 // 		// make epoch size long enough, so that all exit events are processed within the same epoch
-// 		epochSize  = 30
-// 		sprintSize = uint64(5)
+// 		epochSize        = 30
+// 		sprintSize       = uint64(5)
+// 		numberOfAttempts = 4
 // 	)
 
 // 	// init private keys and amounts
@@ -928,18 +981,30 @@ package e2e
 // 			require.NoError(t, err)
 // 		}
 
-// 		blockNum, err := childEthEndpoint.BlockNumber()
-// 		require.NoError(t, err)
+// 		allSuccessful := false
 
-// 		// wait a couple of sprints to finalize state sync events
-// 		require.NoError(t, cluster.WaitForBlock(blockNum+3*sprintSize, 2*time.Minute))
+// 		for it := 0; it < numberOfAttempts && !allSuccessful; it++ {
+// 			blockNum, err := childEthEndpoint.BlockNumber()
+// 			require.NoError(t, err)
 
-// 		// check that balances on the child chain are correct
-// 		for i, receiver := range depositors {
-// 			balance := erc20BalanceOf(t, receiver, contracts.NativeERC20TokenContract, childchainTxRelayer)
-// 			t.Log("Balance before", balancesBefore[i], "Balance after", balance)
-// 			require.Equal(t, balance, balancesBefore[i].Add(balancesBefore[i], big.NewInt(amount)))
+// 			// wait a couple of sprints to finalize state sync events
+// 			require.NoError(t, cluster.WaitForBlock(blockNum+3*sprintSize, 2*time.Minute))
+
+// 			allSuccessful = true
+
+// 			// check that balances on the child chain are correct
+// 			for i, receiver := range depositors {
+// 				balance := erc20BalanceOf(t, receiver, contracts.NativeERC20TokenContract, childchainTxRelayer)
+// 				t.Log("Attempt", it+1, "Balance before", balancesBefore[i], "Balance after", balance)
+// 				if balance.Cmp(balancesBefore[i].Add(balancesBefore[i], big.NewInt(amount))) != 0 {
+// 					allSuccessful = false
+
+// 					break
+// 				}
+// 			}
 // 		}
+
+// 		require.True(t, allSuccessful)
 // 	})
 
 // 	t.Run("bridge ERC 721 tokens", func(t *testing.T) {
@@ -1244,8 +1309,9 @@ package e2e
 // 		depositAmount  = ethgo.Ether(5)
 // 		withdrawAmount = ethgo.Ether(1)
 // 		// make epoch size long enough, so that all exit events are processed within the same epoch
-// 		epochSize  = 30
-// 		sprintSize = uint64(5)
+// 		epochSize            = 30
+// 		sprintSize           = uint64(5)
+// 		stateSyncedLogsCount = 1
 // 	)
 
 // 	receivers := make([]string, transfersCount)
@@ -1312,7 +1378,7 @@ package e2e
 // 	require.NoError(t, err)
 
 // 	// assert that all deposits are executed successfully
-// 	checkStateSyncResultLogs(t, logs, 1)
+// 	checkStateSyncResultLogs(t, logs, stateSyncedLogsCount)
 
 // 	// check admin balance got increased by deposited amount
 // 	balance, err := childEthEndpoint.GetBalance(ethgo.Address(adminAddr), ethgo.Latest)
@@ -1457,12 +1523,12 @@ package e2e
 
 // func TestE2E_Bridge_Transfers_WithBlockTrackerPollInterval(t *testing.T) {
 // 	var (
-// 		// amount                = ethgo.Gwei(10)
 // 		numBlockConfirmations = uint64(2)
 // 		epochSize             = 30
 // 		sprintSize            = uint64(5)
 // 		rootPollInterval      = 5 * time.Second
 // 		relayerPollInterval   = 5 * time.Second
+// 		stateSyncedLogsCount  = 1
 // 	)
 
 // 	cluster := framework.NewTestCluster(t, 5,
@@ -1511,7 +1577,7 @@ package e2e
 // 	require.NoError(t, err)
 
 // 	// assert that all deposits are executed successfully
-// 	checkStateSyncResultLogs(t, logs, 1)
+// 	checkStateSyncResultLogs(t, logs, stateSyncedLogsCount)
 
 // 	// check validator balance got increased by deposited amount
 // 	balance, err := childEthEndpoint.GetBalance(ethgo.Address(senderAccount.Address()), ethgo.Latest)
