@@ -186,8 +186,8 @@ func (*NewValidatorEvent) Sig() ethgo.Hash {
 	return ValidatorSet.Abi.Events["NewValidator"].ID()
 }
 
-func (*NewValidatorEvent) Encode(inputs interface{}) ([]byte, error) {
-	return ValidatorSet.Abi.Events["NewValidator"].Inputs.Encode(inputs)
+func (n *NewValidatorEvent) Encode() ([]byte, error) {
+	return ValidatorSet.Abi.Events["NewValidator"].Inputs.Encode(n)
 }
 
 func (n *NewValidatorEvent) ParseLog(log *ethgo.Log) (bool, error) {
@@ -196,6 +196,10 @@ func (n *NewValidatorEvent) ParseLog(log *ethgo.Log) (bool, error) {
 	}
 
 	return true, decodeEvent(ValidatorSet.Abi.Events["NewValidator"], log, n)
+}
+
+func (n *NewValidatorEvent) Decode(input []byte) error {
+	return ValidatorSet.Abi.Events["NewValidator"].Inputs.DecodeStruct(input, &n)
 }
 
 type StakedEvent struct {
@@ -207,8 +211,8 @@ func (*StakedEvent) Sig() ethgo.Hash {
 	return ValidatorSet.Abi.Events["Staked"].ID()
 }
 
-func (*StakedEvent) Encode(inputs interface{}) ([]byte, error) {
-	return ValidatorSet.Abi.Events["Staked"].Inputs.Encode(inputs)
+func (s *StakedEvent) Encode() ([]byte, error) {
+	return ValidatorSet.Abi.Events["Staked"].Inputs.Encode(s)
 }
 
 func (s *StakedEvent) ParseLog(log *ethgo.Log) (bool, error) {
@@ -217,6 +221,10 @@ func (s *StakedEvent) ParseLog(log *ethgo.Log) (bool, error) {
 	}
 
 	return true, decodeEvent(ValidatorSet.Abi.Events["Staked"], log, s)
+}
+
+func (s *StakedEvent) Decode(input []byte) error {
+	return ValidatorSet.Abi.Events["Staked"].Inputs.DecodeStruct(input, &s)
 }
 
 type DelegatedEvent struct {
@@ -229,8 +237,8 @@ func (*DelegatedEvent) Sig() ethgo.Hash {
 	return ValidatorSet.Abi.Events["Delegated"].ID()
 }
 
-func (*DelegatedEvent) Encode(inputs interface{}) ([]byte, error) {
-	return ValidatorSet.Abi.Events["Delegated"].Inputs.Encode(inputs)
+func (d *DelegatedEvent) Encode() ([]byte, error) {
+	return ValidatorSet.Abi.Events["Delegated"].Inputs.Encode(d)
 }
 
 func (d *DelegatedEvent) ParseLog(log *ethgo.Log) (bool, error) {
@@ -239,6 +247,10 @@ func (d *DelegatedEvent) ParseLog(log *ethgo.Log) (bool, error) {
 	}
 
 	return true, decodeEvent(ValidatorSet.Abi.Events["Delegated"], log, d)
+}
+
+func (d *DelegatedEvent) Decode(input []byte) error {
+	return ValidatorSet.Abi.Events["Delegated"].Inputs.DecodeStruct(input, &d)
 }
 
 type UnstakedEvent struct {
@@ -250,8 +262,8 @@ func (*UnstakedEvent) Sig() ethgo.Hash {
 	return ValidatorSet.Abi.Events["Unstaked"].ID()
 }
 
-func (*UnstakedEvent) Encode(inputs interface{}) ([]byte, error) {
-	return ValidatorSet.Abi.Events["Unstaked"].Inputs.Encode(inputs)
+func (u *UnstakedEvent) Encode() ([]byte, error) {
+	return ValidatorSet.Abi.Events["Unstaked"].Inputs.Encode(u)
 }
 
 func (u *UnstakedEvent) ParseLog(log *ethgo.Log) (bool, error) {
@@ -260,6 +272,10 @@ func (u *UnstakedEvent) ParseLog(log *ethgo.Log) (bool, error) {
 	}
 
 	return true, decodeEvent(ValidatorSet.Abi.Events["Unstaked"], log, u)
+}
+
+func (u *UnstakedEvent) Decode(input []byte) error {
+	return ValidatorSet.Abi.Events["Unstaked"].Inputs.DecodeStruct(input, &u)
 }
 
 type UndelegatedEvent struct {
@@ -272,8 +288,8 @@ func (*UndelegatedEvent) Sig() ethgo.Hash {
 	return ValidatorSet.Abi.Events["Undelegated"].ID()
 }
 
-func (*UndelegatedEvent) Encode(inputs interface{}) ([]byte, error) {
-	return ValidatorSet.Abi.Events["Undelegated"].Inputs.Encode(inputs)
+func (u *UndelegatedEvent) Encode() ([]byte, error) {
+	return ValidatorSet.Abi.Events["Undelegated"].Inputs.Encode(u)
 }
 
 func (u *UndelegatedEvent) ParseLog(log *ethgo.Log) (bool, error) {
@@ -284,6 +300,10 @@ func (u *UndelegatedEvent) ParseLog(log *ethgo.Log) (bool, error) {
 	return true, decodeEvent(ValidatorSet.Abi.Events["Undelegated"], log, u)
 }
 
+func (u *UndelegatedEvent) Decode(input []byte) error {
+	return ValidatorSet.Abi.Events["Undelegated"].Inputs.DecodeStruct(input, &u)
+}
+
 type AddedToWhitelistEvent struct {
 	Validator types.Address `abi:"validator"`
 }
@@ -292,8 +312,8 @@ func (*AddedToWhitelistEvent) Sig() ethgo.Hash {
 	return ValidatorSet.Abi.Events["AddedToWhitelist"].ID()
 }
 
-func (*AddedToWhitelistEvent) Encode(inputs interface{}) ([]byte, error) {
-	return ValidatorSet.Abi.Events["AddedToWhitelist"].Inputs.Encode(inputs)
+func (a *AddedToWhitelistEvent) Encode() ([]byte, error) {
+	return ValidatorSet.Abi.Events["AddedToWhitelist"].Inputs.Encode(a)
 }
 
 func (a *AddedToWhitelistEvent) ParseLog(log *ethgo.Log) (bool, error) {
@@ -302,6 +322,10 @@ func (a *AddedToWhitelistEvent) ParseLog(log *ethgo.Log) (bool, error) {
 	}
 
 	return true, decodeEvent(ValidatorSet.Abi.Events["AddedToWhitelist"], log, a)
+}
+
+func (a *AddedToWhitelistEvent) Decode(input []byte) error {
+	return ValidatorSet.Abi.Events["AddedToWhitelist"].Inputs.DecodeStruct(input, &a)
 }
 
 type WithdrawalEvent struct {
@@ -314,8 +338,8 @@ func (*WithdrawalEvent) Sig() ethgo.Hash {
 	return ValidatorSet.Abi.Events["Withdrawal"].ID()
 }
 
-func (*WithdrawalEvent) Encode(inputs interface{}) ([]byte, error) {
-	return ValidatorSet.Abi.Events["Withdrawal"].Inputs.Encode(inputs)
+func (w *WithdrawalEvent) Encode() ([]byte, error) {
+	return ValidatorSet.Abi.Events["Withdrawal"].Inputs.Encode(w)
 }
 
 func (w *WithdrawalEvent) ParseLog(log *ethgo.Log) (bool, error) {
@@ -324,6 +348,10 @@ func (w *WithdrawalEvent) ParseLog(log *ethgo.Log) (bool, error) {
 	}
 
 	return true, decodeEvent(ValidatorSet.Abi.Events["Withdrawal"], log, w)
+}
+
+func (w *WithdrawalEvent) Decode(input []byte) error {
+	return ValidatorSet.Abi.Events["Withdrawal"].Inputs.DecodeStruct(input, &w)
 }
 
 type StakeChangedEvent struct {
@@ -335,8 +363,8 @@ func (*StakeChangedEvent) Sig() ethgo.Hash {
 	return ValidatorSet.Abi.Events["StakeChanged"].ID()
 }
 
-func (*StakeChangedEvent) Encode(inputs interface{}) ([]byte, error) {
-	return ValidatorSet.Abi.Events["StakeChanged"].Inputs.Encode(inputs)
+func (s *StakeChangedEvent) Encode() ([]byte, error) {
+	return ValidatorSet.Abi.Events["StakeChanged"].Inputs.Encode(s)
 }
 
 func (s *StakeChangedEvent) ParseLog(log *ethgo.Log) (bool, error) {
@@ -345,6 +373,10 @@ func (s *StakeChangedEvent) ParseLog(log *ethgo.Log) (bool, error) {
 	}
 
 	return true, decodeEvent(ValidatorSet.Abi.Events["StakeChanged"], log, s)
+}
+
+func (s *StakeChangedEvent) Decode(input []byte) error {
+	return ValidatorSet.Abi.Events["StakeChanged"].Inputs.DecodeStruct(input, &s)
 }
 
 type InitializeLiquidityTokenFn struct {
@@ -364,4 +396,56 @@ func (i *InitializeLiquidityTokenFn) EncodeAbi() ([]byte, error) {
 
 func (i *InitializeLiquidityTokenFn) DecodeAbi(buf []byte) error {
 	return decodeMethod(LiquidityToken.Abi.Methods["initialize"], buf, i)
+}
+
+type ProtectSetUpProxyGenesisProxyFn struct {
+	Initiator types.Address `abi:"initiator"`
+}
+
+func (p *ProtectSetUpProxyGenesisProxyFn) Sig() []byte {
+	return GenesisProxy.Abi.Methods["protectSetUpProxy"].ID()
+}
+
+func (p *ProtectSetUpProxyGenesisProxyFn) EncodeAbi() ([]byte, error) {
+	return GenesisProxy.Abi.Methods["protectSetUpProxy"].Encode(p)
+}
+
+func (p *ProtectSetUpProxyGenesisProxyFn) DecodeAbi(buf []byte) error {
+	return decodeMethod(GenesisProxy.Abi.Methods["protectSetUpProxy"], buf, p)
+}
+
+type SetUpProxyGenesisProxyFn struct {
+	Logic types.Address `abi:"logic"`
+	Admin types.Address `abi:"admin"`
+	Data  []byte        `abi:"data"`
+}
+
+func (s *SetUpProxyGenesisProxyFn) Sig() []byte {
+	return GenesisProxy.Abi.Methods["setUpProxy"].ID()
+}
+
+func (s *SetUpProxyGenesisProxyFn) EncodeAbi() ([]byte, error) {
+	return GenesisProxy.Abi.Methods["setUpProxy"].Encode(s)
+}
+
+func (s *SetUpProxyGenesisProxyFn) DecodeAbi(buf []byte) error {
+	return decodeMethod(GenesisProxy.Abi.Methods["setUpProxy"], buf, s)
+}
+
+type TransparentUpgradeableProxyConstructorFn struct {
+	Logic  types.Address `abi:"_logic"`
+	Admin_ types.Address `abi:"admin_"`
+	Data   []byte        `abi:"_data"`
+}
+
+func (t *TransparentUpgradeableProxyConstructorFn) Sig() []byte {
+	return TransparentUpgradeableProxy.Abi.Constructor.ID()
+}
+
+func (t *TransparentUpgradeableProxyConstructorFn) EncodeAbi() ([]byte, error) {
+	return TransparentUpgradeableProxy.Abi.Constructor.Inputs.Encode(t)
+}
+
+func (t *TransparentUpgradeableProxyConstructorFn) DecodeAbi(buf []byte) error {
+	return decodeMethod(TransparentUpgradeableProxy.Abi.Constructor, buf, t)
 }

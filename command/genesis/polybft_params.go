@@ -386,40 +386,40 @@ func (p *genesisParams) deployContracts(
 		// 	artifact: contractsapi.RewardPool,
 		// 	address:  contracts.RewardPoolContract,
 		// },
-		{
-			artifact: contractsapi.RewardPool,
-			address:  contracts.RewardPoolContractV1,
-		},
+		// {
+		// 	artifact: contractsapi.RewardPool,
+		// 	address:  contracts.RewardPoolContractV1,
+		// },
 		{artifact: contractsapi.LiquidityToken,
 			address: contracts.LiquidityTokenContract,
 		},
 	}
 
-	if !params.nativeTokenConfig.IsMintable {
-		genesisContracts = append(genesisContracts,
-			&contractInfo{
-				artifact: contractsapi.NativeERC20,
-				address:  contracts.NativeERC20TokenContractV1,
-			})
+	// if !params.nativeTokenConfig.IsMintable {
+	// 	genesisContracts = append(genesisContracts,
+	// 		&contractInfo{
+	// 			artifact: contractsapi.NativeERC20,
+	// 			address:  contracts.NativeERC20TokenContractV1,
+	// 		})
 
-		// burn contract can be set only for non-mintable native token. If burn contract is set,
-		// default EIP1559 contract will be deployed.
-		if p.isBurnContractEnabled() {
-			genesisContracts = append(genesisContracts,
-				&contractInfo{
-					artifact: contractsapi.EIP1559Burn,
-					address:  burnContractAddr,
-				})
+	// 	// burn contract can be set only for non-mintable native token. If burn contract is set,
+	// 	// default EIP1559 contract will be deployed.
+	// 	if p.isBurnContractEnabled() {
+	// 		genesisContracts = append(genesisContracts,
+	// 			&contractInfo{
+	// 				artifact: contractsapi.EIP1559Burn,
+	// 				address:  burnContractAddr,
+	// 			})
 
-			proxyAddresses = append(proxyAddresses, contracts.DefaultBurnContract)
-		}
-	} else {
-		genesisContracts = append(genesisContracts,
-			&contractInfo{
-				artifact: contractsapi.NativeERC20Mintable,
-				address:  contracts.NativeERC20TokenContractV1,
-			})
-	}
+	// 		proxyAddresses = append(proxyAddresses, contracts.DefaultBurnContract)
+	// 	}
+	// } else {
+	// 	genesisContracts = append(genesisContracts,
+	// 		&contractInfo{
+	// 			artifact: contractsapi.NativeERC20Mintable,
+	// 			address:  contracts.NativeERC20TokenContractV1,
+	// 		})
+	// }
 
 	allocations := make(map[types.Address]*chain.GenesisAccount, len(genesisContracts)+1)
 

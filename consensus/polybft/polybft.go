@@ -534,8 +534,10 @@ func (p *Polybft) Start() error {
 	// start state DB process
 	go p.state.startStatsReleasing()
 
-	// polybft rootchain metrics
-	go p.publishRootchainMetrics(p.logger.Named("rootchain_metrics"))
+	if p.consensusConfig.IsBridgeEnabled() {
+		// polybft rootchain metrics
+		go p.publishRootchainMetrics(p.logger.Named("rootchain_metrics"))
+	}
 
 	return nil
 }

@@ -1,6 +1,7 @@
 package polybft
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -295,7 +296,11 @@ func callContract(from, to types.Address, input []byte, contractName string, tra
 			}
 		}
 
-		return fmt.Errorf("%s contract call failed: %w", contractName, result.Err)
+		return fmt.Errorf("%s contract call failed: %w, Revert reason hex: %s",
+			contractName,
+			result.Err,
+			hex.EncodeToString(result.ReturnValue),
+		)
 	}
 
 	return nil

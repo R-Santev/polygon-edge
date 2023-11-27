@@ -102,18 +102,18 @@ var (
 // GetProxyImplementationMapping retrieves the addresses of proxy contracts that should be deployed unconditionally
 func GetProxyImplementationMapping() map[types.Address]types.Address {
 	return map[types.Address]types.Address{
-		StateReceiverContract:                StateReceiverContractV1,
-		BLSContract:                          BLSContractV1,
-		MerkleContract:                       MerkleContractV1,
-		L2StateSenderContract:                L2StateSenderContractV1,
-		ValidatorSetContract:                 ValidatorSetContractV1,
-		RewardPoolContract:                   RewardPoolContractV1,
-		NativeERC20TokenContract:             NativeERC20TokenContractV1,
-		ChildERC20PredicateContract:          ChildERC20PredicateContractV1,
-		ChildERC721PredicateContract:         ChildERC721PredicateContractV1,
-		ChildERC1155PredicateContract:        ChildERC1155PredicateContractV1,
-		RootMintableERC20PredicateContract:   RootMintableERC20PredicateContractV1,
-		RootMintableERC721PredicateContract:  RootMintableERC721PredicateContractV1,
-		RootMintableERC1155PredicateContract: RootMintableERC1155PredicateContractV1,
+		// StateReceiverContract: StateReceiverContractV1,
+		BLSContract:    BLSContractV1,
+		MerkleContract: MerkleContractV1,
+		// L2StateSenderContract: L2StateSenderContractV1,
+		ValidatorSetContract: ValidatorSetContractV1,
+		// RewardPoolContract:                   RewardPoolContractV1,
+		// NativeERC20TokenContract: NativeERC20TokenContractV1,
+		// ChildERC20PredicateContract:          ChildERC20PredicateContractV1,
+		// ChildERC721PredicateContract:         ChildERC721PredicateContractV1,
+		// ChildERC1155PredicateContract:        ChildERC1155PredicateContractV1,
+		// RootMintableERC20PredicateContract:   RootMintableERC20PredicateContractV1,
+		// RootMintableERC721PredicateContract:  RootMintableERC721PredicateContractV1,
+		// RootMintableERC1155PredicateContract: RootMintableERC1155PredicateContractV1,
 	}
 }

@@ -73,7 +73,7 @@ func main() {
 			"LiquidityToken",
 		},
 		{
-			"lib/GenesisProxy.sol",
+			"libs/GenesisProxy.sol",
 			"GenesisProxy",
 		},
 		{
