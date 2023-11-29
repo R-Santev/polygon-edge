@@ -723,9 +723,7 @@ func createStateTransactionWithData(blockNumber uint64, target types.Address, in
 		GasPrice: big.NewInt(0),
 	}
 
-	tx.ComputeHash(blockNumber)
-
-	return tx
+	return tx.ComputeHash(blockNumber)
 }
 
 // func isCommitEpochTx(tx *types.Transaction) bool {

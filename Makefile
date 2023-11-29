@@ -38,12 +38,12 @@ protoc: check-protoc
 
 .PHONY: build
 build: check-go check-git
-	$(eval LATEST_VERSION = $(shell git describe --tags --abbrev=0))
 	$(eval COMMIT_HASH = $(shell git rev-parse HEAD))
+	$(eval VERSION = $(shell git tag --points-at $COMMIT_HASH))
 	$(eval BRANCH = $(shell git rev-parse --abbrev-ref HEAD | tr -d '\040\011\012\015\n'))
 	$(eval TIME = $(shell date))
 	go build -o polygon-edge -ldflags="\
-    	-X 'github.com/0xPolygon/polygon-edge/versioning.Version=$(LATEST_VERSION)' \
+    	-X 'github.com/0xPolygon/polygon-edge/versioning.Version=$(VERSION)' \
 		-X 'github.com/0xPolygon/polygon-edge/versioning.Commit=$(COMMIT_HASH)'\
 		-X 'github.com/0xPolygon/polygon-edge/versioning.Branch=$(BRANCH)'\
 		-X 'github.com/0xPolygon/polygon-edge/versioning.BuildTime=$(TIME)'" \
@@ -59,7 +59,7 @@ generate-bsd-licenses: check-git
 
 .PHONY: test
 test: check-go
-	go test -coverprofile coverage.out -timeout 20m `go list ./... | grep -v e2e`
+	go test -race -shuffle=on -coverprofile coverage.out -timeout 20m `go list ./... | grep -v e2e`
 
 .PHONY: fuzz-test
 fuzz-test: check-go
