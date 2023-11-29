@@ -23,6 +23,10 @@ type unstakeParams struct {
 }
 
 func (v *unstakeParams) validateFlags() (err error) {
+	if _, err := helper.ParseJSONRPCAddress(v.jsonRPC); err != nil {
+		return fmt.Errorf("failed to parse json rpc address. Error: %w", err)
+	}
+
 	if v.amountValue, err = helper.ParseAmount(v.amount); err != nil {
 		return err
 	}

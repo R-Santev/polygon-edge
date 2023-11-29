@@ -22,6 +22,10 @@ type stakeParams struct {
 }
 
 func (v *stakeParams) validateFlags() error {
+	if _, err := helper.ParseJSONRPCAddress(v.jsonRPC); err != nil {
+		return fmt.Errorf("failed to parse json rpc address. Error: %w", err)
+	}
+
 	return sidechainHelper.ValidateSecretFlags(v.accountDir, v.accountConfig)
 }
 

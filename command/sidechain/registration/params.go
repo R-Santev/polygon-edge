@@ -27,6 +27,10 @@ func (rp *registerParams) validateFlags() error {
 		return err
 	}
 
+	if _, err := helper.ParseJSONRPCAddress(rp.jsonRPC); err != nil {
+		return fmt.Errorf("failed to parse json rpc address. Error: %w", err)
+	}
+
 	if rp.stake != "" {
 		_, err := common.ParseUint256orHex(&rp.stake)
 		if err != nil {
