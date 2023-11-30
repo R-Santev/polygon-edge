@@ -2,6 +2,8 @@ FROM rsantev/polygon-edge:latest
 
 WORKDIR /app
 
+USER root
+
 RUN apk add --no-cache bash curl
 
 COPY ./scripts/secrets.sh .
@@ -15,4 +17,4 @@ RUN chmod +x secrets.sh
 
 EXPOSE 9632 1478 8545
 
-ENTRYPOINT ./run.sh
+ENTRYPOINT ["./run.sh"]

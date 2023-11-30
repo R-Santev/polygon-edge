@@ -1,0 +1,188 @@
+version: "3.9"
+
+services:
+  ## INITIALIZE GENESIS AND SECRETS, ETC.
+  init:
+    image: rsantev/devnet-cluster:latest
+    container_name: polygon-edge-bootstrapper
+    command: ["init"]
+    volumes:
+      - data:/data
+    networks:
+      - polygon-edge-docker
+
+  ## RUN NODES
+  node-1:
+    image: rsantev/devnet-cluster:latest
+    container_name: polygon-edge-validator-1
+    command:
+      [
+        "server",
+        "--data-dir",
+        "/data/data-1",
+        "--chain",
+        "/data/genesis.json",
+        "--grpc-address",
+        "0.0.0.0:9632",
+        "--libp2p",
+        "0.0.0.0:1478",
+        "--jsonrpc",
+        "0.0.0.0:8545",
+        "--prometheus",
+        "0.0.0.0:5001",
+        "--relayer",
+      ]
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    ports:
+      - "10000:9632"
+      - "10001:1478"
+      - "10002:8545"
+      - "10003:5001"
+    volumes:
+      - data:/data
+    networks:
+      - polygon-edge-docker
+    restart: on-failure
+
+  node-2:
+    image: rsantev/devnet-cluster:latest
+    container_name: polygon-edge-validator-2
+    command:
+      [
+        "server",
+        "--data-dir",
+        "/data/data-2",
+        "--chain",
+        "/data/genesis.json",
+        "--grpc-address",
+        "0.0.0.0:9632",
+        "--libp2p",
+        "0.0.0.0:1478",
+        "--jsonrpc",
+        "0.0.0.0:8545",
+        "--prometheus",
+        "0.0.0.0:5001",
+      ]
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    ports:
+      - "20000:9632"
+      - "20001:1478"
+      - "20002:8545"
+      - "20003:5001"
+    volumes:
+      - data:/data
+    networks:
+      - polygon-edge-docker
+    restart: on-failure
+
+  node-3:
+    image: rsantev/devnet-cluster:latest
+    container_name: polygon-edge-validator-3
+    command:
+      [
+        "server",
+        "--data-dir",
+        "/data/data-3",
+        "--chain",
+        "/data/genesis.json",
+        "--grpc-address",
+        "0.0.0.0:9632",
+        "--libp2p",
+        "0.0.0.0:1478",
+        "--jsonrpc",
+        "0.0.0.0:8545",
+        "--prometheus",
+        "0.0.0.0:5001",
+      ]
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    ports:
+      - "30000:9632"
+      - "30001:1478"
+      - "30002:8545"
+      - "30003:5001"
+    volumes:
+      - data:/data
+    networks:
+      - polygon-edge-docker
+    restart: on-failure
+
+  node-4:
+    image: rsantev/devnet-cluster:latest
+    container_name: polygon-edge-validator-4
+    command:
+      [
+        "server",
+        "--data-dir",
+        "/data/data-4",
+        "--chain",
+        "/data/genesis.json",
+        "--grpc-address",
+        "0.0.0.0:9632",
+        "--libp2p",
+        "0.0.0.0:1478",
+        "--jsonrpc",
+        "0.0.0.0:8545",
+        "--prometheus",
+        "0.0.0.0:5001",
+      ]
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    ports:
+      - "40000:9632"
+      - "40001:1478"
+      - "40002:8545"
+      - "40003:5001"
+    volumes:
+      - data:/data
+    networks:
+      - polygon-edge-docker
+    restart: on-failure
+
+  node-5:
+    image: rsantev/devnet-cluster:latest
+    container_name: polygon-edge-validator-5
+    command:
+      [
+        "server",
+        "--data-dir",
+        "/data/data-5",
+        "--chain",
+        "/data/genesis.json",
+        "--grpc-address",
+        "0.0.0.0:9632",
+        "--libp2p",
+        "0.0.0.0:1478",
+        "--jsonrpc",
+        "0.0.0.0:8545",
+        "--prometheus",
+        "0.0.0.0:5001",
+      ]
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    ports:
+      - "50000:9632"
+      - "50001:1478"
+      - "50002:8545"
+      - "50003:5001"
+    volumes:
+      - data:/data
+    networks:
+      - polygon-edge-docker
+    restart: on-failure
+
+networks:
+  polygon-edge-docker:
+    driver: bridge
+    name: polygon-edge-docker
+
+volumes:
+  data:
+  genesis:

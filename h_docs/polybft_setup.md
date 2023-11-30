@@ -148,6 +148,10 @@ We do the following configuration:
 
 - Map port 1478 of the container to port 1478 of the host machine
 - Mounts the directory /path/on/host from the host machine to /app/node inside the container.
+- Add the following command:
+  ```
+  server --data-dir ./node --chain genesis.json --grpc-address 127.0.0.1:9632 --libp2p 0.0.0.0:1478 --jsonrpc 0.0.0.0:8545 --seal --prometheus 0.0.0.0:5001 --log-level DEBUG json-rpc-block-range-limit 0
+  ```
 
 ```
 docker run -p 1478:1478 -v /path/on/host:/app/node <optional env.list path> hydrag-devnet
