@@ -628,18 +628,21 @@ func (t *Transition) apply(msg *types.Transaction) (*runtime.ExecutionResult, er
 
 	// Pay the coinbase fee as a miner reward using the calculated effective tip.
 	coinbaseFee := new(big.Int).Mul(new(big.Int).SetUint64(result.GasUsed), effectiveTip)
-	// Hydra: burn half of the coinbase fee and send the other half to the fee handler contract
-	toBurnFee := new(big.Int).Div(coinbaseFee, big.NewInt(2))
-	t.state.AddBalance(contracts.HydraBurnAddress, toBurnFee)
-	toSellFee := new(big.Int).Sub(coinbaseFee, toBurnFee)
-	t.state.AddBalance(contracts.FeeHandlerContract, toSellFee)
-
+	// Hydra: sum up all the fees
+	totalFees := new(big.Int).Set(coinbaseFee)
 	// Burn some amount if the london hardfork is applied.
 	// Basically, burn amount is just transferred to the current burn contract.
 	if t.config.London && msg.Type != types.StateTx {
 		burnAmount := new(big.Int).Mul(new(big.Int).SetUint64(result.GasUsed), t.ctx.BaseFee)
-		t.state.AddBalance(t.ctx.BurnContract, burnAmount)
+		// t.state.AddBalance(t.ctx.BurnContract, burnAmount)
+		totalFees.Add(totalFees, burnAmount)
 	}
+
+	// Hydra: burn half of the whole fee and send the other half to the fee handler contract
+	toBurnFee := new(big.Int).Div(totalFees, big.NewInt(2))
+	t.state.AddBalance(contracts.HydraBurnAddress, toBurnFee)
+	toSendFee := new(big.Int).Sub(totalFees, toBurnFee)
+	t.state.AddBalance(contracts.FeeHandlerContract, toSendFee)
 
 	// return gas to the pool
 	t.addGasPool(result.GasLeft)

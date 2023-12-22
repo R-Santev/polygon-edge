@@ -166,7 +166,7 @@ func TestExecutor_apply_FeeDistribution(t *testing.T) {
 
 	tr := NewTransition(chain.ForksInTime{}, state, newTxn(state))
 	tr.ctx = runtime.TxContext{
-		BaseFee: big.NewInt(100),
+		BaseFee: big.NewInt(10),
 	}
 
 	tr.gasPool = uint64(10000000)
@@ -175,6 +175,19 @@ func TestExecutor_apply_FeeDistribution(t *testing.T) {
 	tr.state.SetBalance(from, ethgo.Ether(100))
 
 	createTx := func(from *types.Address, value *big.Int, txType types.TxType, nonce uint64, gasPrice *big.Int) *types.Transaction {
+		if txType == types.DynamicFeeTx {
+			return &types.Transaction{
+				From:      *from,
+				Value:     value,
+				Type:      txType,
+				GasFeeCap: gasPrice,
+				GasTipCap: big.NewInt(0).Sub(gasPrice, big.NewInt(5)),
+				Gas:       1000000,
+				To:        &to,
+				Nonce:     nonce,
+			}
+		}
+
 		return &types.Transaction{
 			From:     *from,
 			Value:    value,
@@ -192,33 +205,63 @@ func TestExecutor_apply_FeeDistribution(t *testing.T) {
 		msg                     *types.Transaction
 		burnBalanceChange       *big.Int
 		feeHandlerBalanceChange *big.Int
+		config                  chain.ForksInTime
 		expectedErr             error
 	}{
 		{
-			name:                    "No fee distribution when system tx",
+			name:                    "No fee distribution when system tx and no EIP-1559",
 			msg:                     createTx(&contracts.SystemCaller, big.NewInt(1), types.StateTx, 0, big.NewInt(0)),
 			burnBalanceChange:       big.NewInt(0),
 			feeHandlerBalanceChange: big.NewInt(0),
+			config:                  chain.ForksInTime{},
 			expectedErr:             nil,
 		},
 		{
-			name:                    "No gas price allowed when system tx",
+			name:                    "No gas price allowed when system tx and no EIP-1559",
 			msg:                     createTx(&contracts.SystemCaller, big.NewInt(1), types.StateTx, 0, big.NewInt(15)),
 			burnBalanceChange:       big.NewInt(0),
 			feeHandlerBalanceChange: big.NewInt(0),
+			config:                  chain.ForksInTime{},
 			expectedErr:             fmt.Errorf("gasPrice of state transaction must be zero"),
 		},
 		{
-			name:                    "fee distribution 50/50 when legacy tx",
+			name:                    "No gas price allowed when system tx and EIP-1559",
+			msg:                     createTx(&contracts.SystemCaller, big.NewInt(1), types.StateTx, 0, big.NewInt(15)),
+			burnBalanceChange:       big.NewInt(0),
+			feeHandlerBalanceChange: big.NewInt(0),
+			config:                  chain.ForksInTime{London: true, LondonFix: true},
+			expectedErr:             fmt.Errorf("gasPrice of state transaction must be zero"),
+		},
+		{
+			name:                    "fee distribution 50/50 when legacy tx and no EIP-1559",
 			msg:                     createTx(&from, big.NewInt(1), types.LegacyTx, 0, big.NewInt(15)),
 			burnBalanceChange:       big.NewInt(157500),
 			feeHandlerBalanceChange: big.NewInt(157500),
+			config:                  chain.ForksInTime{},
+			expectedErr:             nil,
+		},
+		{
+			name:                    "fee distribution 50/50 when legacy tx and EIP-1559",
+			msg:                     createTx(&from, big.NewInt(1), types.LegacyTx, 1, big.NewInt(15)),
+			burnBalanceChange:       big.NewInt(157500),
+			feeHandlerBalanceChange: big.NewInt(157500),
+			config:                  chain.ForksInTime{London: true, LondonFix: true},
+			expectedErr:             nil,
+		},
+		{
+			name:                    "fee distribution 50/50 when dynamic fee tx and EIP-1559",
+			msg:                     createTx(&from, big.NewInt(1), types.DynamicFeeTx, 2, big.NewInt(15)),
+			burnBalanceChange:       big.NewInt(157500),
+			feeHandlerBalanceChange: big.NewInt(157500),
+			config:                  chain.ForksInTime{London: true, LondonFix: true},
 			expectedErr:             nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			tr.config = tt.config
+
 			burnBalanceBefore := tr.GetBalance(contracts.HydraBurnAddress)
 			feeHandlerBalanceBefore := tr.GetBalance(contracts.FeeHandlerContract)
 

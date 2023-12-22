@@ -37,15 +37,15 @@ We need to set native token to be mintable, so we can premine balances to differ
 4. Run the chain
 
 ```
-./polygon-edge server --data-dir ./test-chain-1 --chain genesis.json --grpc-address :5001 --libp2p :30301 --jsonrpc :10001 --seal --log-level DEBUG --log-to ./log
+./polygon-edge server --data-dir ./test-chain-1 --chain genesis.json --grpc-address :5001 --libp2p :30301 --jsonrpc :10001 --log-level DEBUG --log-to ./log
 
-./polygon-edge server --data-dir ./test-chain-2 --chain genesis.json --grpc-address :5002 --libp2p :30302 --jsonrpc :10002 --seal --log-level DEBUG --log-to ./log-2
+./polygon-edge server --data-dir ./test-chain-2 --chain genesis.json --grpc-address :5002 --libp2p :30302 --jsonrpc :10002 --log-level DEBUG --log-to ./log-2
 
-./polygon-edge server --data-dir ./test-chain-3 --chain genesis.json --grpc-address :5003 --libp2p :30303 --jsonrpc :10003 --seal --log-level DEBUG --log-to ./log-3
+./polygon-edge server --data-dir ./test-chain-3 --chain genesis.json --grpc-address :5003 --libp2p :30303 --jsonrpc :10003 --log-level DEBUG --log-to ./log-3
 
-./polygon-edge server --data-dir ./test-chain-4 --chain genesis.json --grpc-address :5004 --libp2p :30304 --jsonrpc :10004 --seal --log-level DEBUG --log-to ./log-4
+./polygon-edge server --data-dir ./test-chain-4 --chain genesis.json --grpc-address :5004 --libp2p :30304 --jsonrpc :10004 --log-level DEBUG --log-to ./log-4
 
-./polygon-edge server --data-dir ./test-chain-5 --chain genesis.json --grpc-address :5005 --libp2p :30305 --jsonrpc :10005 --seal --log-level DEBUG --log-to ./log-5
+./polygon-edge server --data-dir ./test-chain-5 --chain genesis.json --grpc-address :5005 --libp2p :30305 --jsonrpc :10005 --log-level DEBUG --log-to ./log-5
 
 ```
 
@@ -80,7 +80,7 @@ Stake tx is made in this step as well
 
 ```
 
-./polygon-edge server --data-dir ./test-add-chain-1 --chain genesis.json --grpc-address :5006 --libp2p :30306 --jsonrpc :10006 --seal --log-level DEBUG --log-to ./log-6
+./polygon-edge server --data-dir ./test-add-chain-1 --chain genesis.json --grpc-address :5006 --libp2p :30306 --jsonrpc :10006 --log-level DEBUG --log-to ./log-6
 
 ```
 
@@ -110,7 +110,7 @@ polygon-edge genesis --consensus polybft --ibft-validators-prefix-path test-chai
 4. Run the chain
 
 ```
-polygon-edge server --data-dir ./test-chain-1 --chain genesis.json --grpc-address :10000 --libp2p :10001 --jsonrpc :10002 --seal --log-level=DEBUG
+polygon-edge server --data-dir ./test-chain-1 --chain genesis.json --grpc-address :10000 --libp2p :10001 --jsonrpc :10002 --log-level=DEBUG
 ```
 
 ## Devnet node setup
@@ -150,7 +150,7 @@ We do the following configuration:
 - Mounts the directory /path/on/host from the host machine to /app/node inside the container.
 - Add the following command:
   ```
-  server --data-dir ./node --chain genesis.json --grpc-address 127.0.0.1:9632 --libp2p 0.0.0.0:1478 --jsonrpc 0.0.0.0:8545 --seal --prometheus 0.0.0.0:5001 --log-level DEBUG json-rpc-block-range-limit 0
+  server --data-dir ./node --chain genesis.json --grpc-address 127.0.0.1:9632 --libp2p 0.0.0.0:1478 --jsonrpc 0.0.0.0:8545 --prometheus 0.0.0.0:5001 --log-level DEBUG json-rpc-block-range-limit 0
   ```
 
 ```

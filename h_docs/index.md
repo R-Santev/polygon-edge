@@ -9,7 +9,7 @@ Explanation of the main Hydra specific features.
 ### Fee Distribution
 
 We've added a burn address to send there 50% of the fees. It is an EOA address we assume no one will be able to retrieve.
-We don't enable the --burn-address of the usptream implementation because it turns on the EIP1559 which is something we don't want to apply.
+We don't enable the --burn-address of the usptream implementation because we do't need this contract. We've had to make some modifications to enable EIP-1559 no matter upstream burn contract is not enabled.
 
 ## General findings
 

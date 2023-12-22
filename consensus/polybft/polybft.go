@@ -154,10 +154,11 @@ func GenesisPostHookFactory(config *chain.Chain, engineName string) func(txn *st
 
 		proxyAddrMapping := contracts.GetProxyImplementationMapping()
 
-		burnContractAddress, isBurnContractSet := getBurnContractAddress(config, polyBFTConfig)
-		if isBurnContractSet {
-			proxyAddrMapping[contracts.DefaultBurnContract] = burnContractAddress
-		}
+		// Hydra: It is enabled in the config because we need it for EIP1559 to be enabled but we don't actually use it
+		// burnContractAddress, isBurnContractSet := getBurnContractAddress(config, polyBFTConfig)
+		// if isBurnContractSet {
+		// 	proxyAddrMapping[contracts.DefaultBurnContract] = burnContractAddress
+		// }
 
 		if _, ok := config.Genesis.Alloc[contracts.RewardTokenContract]; ok {
 			proxyAddrMapping[contracts.RewardTokenContract] = contracts.RewardTokenContractV1

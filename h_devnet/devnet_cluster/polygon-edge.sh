@@ -12,7 +12,7 @@ POLYGON_EDGE_BIN=polygon-edge
 CHAIN_CUSTOM_OPTIONS=$(
   tr "\n" " " <<EOL
 --block-gas-limit 10000000
---epoch-size 100
+--epoch-size 500
 --chain-id 8844
 --name polygon-edge-docker
 --premine 0x211881Bb4893dd733825A2D97e48bFc38cc70a0c:0x314dc6448d932ae0a456589c0000
