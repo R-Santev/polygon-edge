@@ -428,20 +428,10 @@ func (p *genesisParams) initGenesisConfig() error {
 	}
 
 	// burn contract can be set only for non mintable native token
-	if p.isBurnContractEnabled() {
-		chainConfig.Genesis.BaseFee = p.parsedBaseFeeConfig.baseFee
-		chainConfig.Genesis.BaseFeeEM = p.parsedBaseFeeConfig.baseFeeEM
-		chainConfig.Genesis.BaseFeeChangeDenom = p.parsedBaseFeeConfig.baseFeeChangeDenom
-		chainConfig.Params.BurnContract = make(map[uint64]types.Address, 1)
-
-		burnContractInfo, err := parseBurnContractInfo(p.burnContract)
-		if err != nil {
-			return err
-		}
-
-		chainConfig.Params.BurnContract[burnContractInfo.BlockNumber] = burnContractInfo.Address
-		chainConfig.Params.BurnContractDestinationAddress = burnContractInfo.DestinationAddress
-	}
+	// Hydra modification: set eip1559 fee flags
+	chainConfig.Genesis.BaseFee = p.parsedBaseFeeConfig.baseFee
+	chainConfig.Genesis.BaseFeeEM = p.parsedBaseFeeConfig.baseFeeEM
+	chainConfig.Genesis.BaseFeeChangeDenom = p.parsedBaseFeeConfig.baseFeeChangeDenom
 
 	// Predeploy staking smart contract if needed
 	if p.shouldPredeployStakingSC() {
