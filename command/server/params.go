@@ -187,7 +187,8 @@ func (p *serverParams) generateConfig() *server.Config {
 		JSONLogFormat:      p.rawConfig.JSONLogFormat,
 		LogFilePath:        p.logFileLocation,
 
-		Relayer:                    p.relayer,
+		// Hydra modification: relayer must be disabled
+		Relayer:                    false,
 		NumBlockConfirmations:      p.rawConfig.NumBlockConfirmations,
 		RelayerTrackerPollInterval: p.rawConfig.RelayerTrackerPollInterval,
 		MetricsInterval:            p.rawConfig.MetricsInterval,
