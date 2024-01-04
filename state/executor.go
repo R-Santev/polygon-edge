@@ -180,12 +180,13 @@ func (e *Executor) BeginTxn(
 	}
 
 	burnContract := types.ZeroAddress
-	if forkConfig.London {
-		burnContract, err = e.config.CalculateBurnContract(header.Number)
-		if err != nil {
-			return nil, err
-		}
-	}
+	// Hydra modification: we don't use burn contract the same way
+	// if forkConfig.London {
+	// 	burnContract, err = e.config.CalculateBurnContract(header.Number)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// }
 
 	newTxn := NewTxn(auxSnap2)
 

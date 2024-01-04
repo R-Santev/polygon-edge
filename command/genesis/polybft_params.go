@@ -164,9 +164,10 @@ func (p *genesisParams) generatePolyBftChainConfig(o command.OutputFormatter) er
 
 	// Disable london hardfork if burn contract address is not provided
 	enabledForks := chain.AllForksEnabled
-	if !p.isBurnContractEnabled() {
-		enabledForks.RemoveFork(chain.London)
-	}
+	// Hydra modification: london hardfork is enabled no matter the burn contract state
+	// if !p.isBurnContractEnabled() {
+	// 	enabledForks.RemoveFork(chain.London)
+	// }
 
 	chainConfig := &chain.Chain{
 		Name: p.name,

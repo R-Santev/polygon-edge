@@ -57,3 +57,18 @@ docker build --platform linux/amd64 -t rsantev/hydrag-devnet:latest ./h_devnet
 ```
 docker push rsantev/hydrag-devnet:latest
 ```
+
+### Build devnet cluster docker image
+
+4. Build hydrag devnet cluster image
+
+```
+cd h_devnet/devnet_cluster \
+docker build --platform linux/amd64 -t rsantev/devnet-cluster:latest .
+```
+
+5. Push image to DockerHub
+
+```
+docker push rsantev/devnet-cluster:latest
+```
