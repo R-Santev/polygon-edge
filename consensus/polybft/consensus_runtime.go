@@ -425,11 +425,6 @@ func (c *consensusRuntime) FSM() error {
 // returns *epochMetadata different from nil if the lastEpoch is not the current one and everything was successful
 func (c *consensusRuntime) restartEpoch(header *types.Header) (*epochMetadata, error) {
 	lastEpoch := c.epoch
-
-	// log header block number
-	fmt.Println("Restarting epoch, current block number: ", header.Number)
-
-	fmt.Println("Restarting epoch, current epoch: ", c.epoch)
 	systemState, err := c.getSystemState(header)
 	if err != nil {
 		return nil, fmt.Errorf("get system state: %w", err)

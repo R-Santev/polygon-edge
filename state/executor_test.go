@@ -188,7 +188,7 @@ func TestExecutor_apply_FeeDistribution(t *testing.T) {
 			}
 		}
 
-		return &types.Transaction{
+		tx := &types.Transaction{
 			From:     *from,
 			Value:    value,
 			Type:     txType,
@@ -197,6 +197,12 @@ func TestExecutor_apply_FeeDistribution(t *testing.T) {
 			To:       &to,
 			Nonce:    nonce,
 		}
+
+		if txType == types.StateTx {
+			tx.Gas = 7000000
+		}
+
+		return tx
 	}
 
 	// Define test cases
@@ -319,7 +325,7 @@ func TestExecutor_apply_SystemAddrBalanceInject(t *testing.T) {
 			Value:    value,
 			Type:     txType,
 			GasPrice: big.NewInt(0),
-			Gas:      1000000,
+			Gas:      7000000,
 			To:       to,
 			Nonce:    nonce,
 		}
@@ -392,7 +398,7 @@ func TestExecutor_Apply(t *testing.T) {
 				Value:    value,
 				Type:     txType,
 				GasPrice: big.NewInt(0),
-				Gas:      1000000,
+				Gas:      7000000,
 				To:       toRevert,
 				Nonce:    0,
 				Input:    input,
@@ -409,7 +415,7 @@ func TestExecutor_Apply(t *testing.T) {
 				Value:    value,
 				Type:     txType,
 				GasPrice: big.NewInt(0),
-				Gas:      1000000,
+				Gas:      7000000,
 				To:       &to,
 				Nonce:    1,
 			},

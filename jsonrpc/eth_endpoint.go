@@ -429,6 +429,11 @@ func (e *Eth) getGasPrice() (uint64, error) {
 
 // fillTransactionGasPrice fills transaction gas price if no provided
 func (e *Eth) fillTransactionGasPrice(tx *types.Transaction) error {
+	// State TXs are costless
+	if tx.Type == types.StateTx {
+		return nil
+	}
+
 	if tx.GetGasPrice(e.store.GetBaseFee()).BitLen() > 0 {
 		return nil
 	}
