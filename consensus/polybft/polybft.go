@@ -154,7 +154,7 @@ func GenesisPostHookFactory(config *chain.Chain, engineName string) func(txn *st
 
 		proxyAddrMapping := contracts.GetProxyImplementationMapping()
 
-		// Hydra: It is enabled in the config because we need it for EIP1559 to be enabled but we don't actually use it
+		// Hydra: It is enabled in the config because we need it for EIP1559 to be enabled but we don't actually use the burn contract
 		// burnContractAddress, isBurnContractSet := getBurnContractAddress(config, polyBFTConfig)
 		// if isBurnContractSet {
 		// 	proxyAddrMapping[contracts.DefaultBurnContract] = burnContractAddress
@@ -165,6 +165,11 @@ func GenesisPostHookFactory(config *chain.Chain, engineName string) func(txn *st
 		}
 
 		if err = initProxies(transition, polyBFTConfig.ProxyContractsAdmin, proxyAddrMapping); err != nil {
+			return err
+		}
+
+		// initialize RewardPool SC
+		if err = initRewardPool(polyBFTConfig, transition); err != nil {
 			return err
 		}
 
@@ -180,11 +185,6 @@ func GenesisPostHookFactory(config *chain.Chain, engineName string) func(txn *st
 
 		// // mint reward tokens to reward wallet
 		// if err = mintRewardTokensToWallet(polyBFTConfig, transition); err != nil {
-		// 	return err
-		// }
-
-		// // initialize RewardPool SC
-		// if err = initRewardPool(polyBFTConfig, transition); err != nil {
 		// 	return err
 		// }
 

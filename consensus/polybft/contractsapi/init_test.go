@@ -7,23 +7,27 @@ import (
 )
 
 func TestArtifactNotEmpty(t *testing.T) {
-	require.NotEmpty(t, CheckpointManager.Bytecode)
-	require.NotEmpty(t, CheckpointManager.DeployedBytecode)
-	require.NotEmpty(t, CheckpointManager.Abi)
-
-	require.NotEmpty(t, ExitHelper.Bytecode)
-	require.NotEmpty(t, ExitHelper.DeployedBytecode)
-	require.NotEmpty(t, ExitHelper.Abi)
-
-	require.NotEmpty(t, L2StateSender.Bytecode)
-	require.NotEmpty(t, L2StateSender.DeployedBytecode)
-	require.NotEmpty(t, L2StateSender.Abi)
-
 	require.NotEmpty(t, BLS.Bytecode)
 	require.NotEmpty(t, BLS.DeployedBytecode)
 	require.NotEmpty(t, BLS.Abi)
 
-	require.NotEmpty(t, BLS256.Bytecode)
-	require.NotEmpty(t, BLS256.DeployedBytecode)
-	require.NotEmpty(t, BLS256.Abi)
+	require.NotEmpty(t, RewardPool.Bytecode)
+	require.NotEmpty(t, RewardPool.DeployedBytecode)
+	require.NotEmpty(t, RewardPool.Abi)
+
+	require.NotEmpty(t, ValidatorSet.Bytecode)
+	require.NotEmpty(t, ValidatorSet.DeployedBytecode)
+	require.NotEmpty(t, ValidatorSet.Abi)
+
+	require.NotEmpty(t, LiquidityToken.Bytecode)
+	require.NotEmpty(t, LiquidityToken.DeployedBytecode)
+	require.NotEmpty(t, LiquidityToken.Abi)
+
+	require.NotEmpty(t, GenesisProxy.Bytecode)
+	require.NotEmpty(t, GenesisProxy.DeployedBytecode)
+	require.NotEmpty(t, GenesisProxy.Abi)
+
+	require.NotEmpty(t, TransparentUpgradeableProxy.Bytecode)
+	require.NotEmpty(t, TransparentUpgradeableProxy.DeployedBytecode)
+	require.NotEmpty(t, TransparentUpgradeableProxy.Abi)
 }

@@ -103,11 +103,11 @@ var (
 func GetProxyImplementationMapping() map[types.Address]types.Address {
 	return map[types.Address]types.Address{
 		// StateReceiverContract: StateReceiverContractV1,
-		BLSContract:    BLSContractV1,
-		MerkleContract: MerkleContractV1,
+		BLSContract: BLSContractV1,
+		// MerkleContract: MerkleContractV1,
 		// L2StateSenderContract: L2StateSenderContractV1,
 		ValidatorSetContract: ValidatorSetContractV1,
-		// RewardPoolContract:                   RewardPoolContractV1,
+		RewardPoolContract:   RewardPoolContractV1,
 		// NativeERC20TokenContract: NativeERC20TokenContractV1,
 		// ChildERC20PredicateContract:          ChildERC20PredicateContractV1,
 		// ChildERC721PredicateContract:         ChildERC721PredicateContractV1,

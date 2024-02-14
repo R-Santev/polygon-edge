@@ -9,71 +9,6 @@ import (
 	"github.com/umbracle/ethgo/abi"
 )
 
-type Epoch struct {
-	StartBlock *big.Int   `abi:"startBlock"`
-	EndBlock   *big.Int   `abi:"endBlock"`
-	EpochRoot  types.Hash `abi:"epochRoot"`
-}
-
-var EpochABIType = abi.MustNewType("tuple(uint256 startBlock,uint256 endBlock,bytes32 epochRoot)")
-
-func (e *Epoch) EncodeAbi() ([]byte, error) {
-	return EpochABIType.Encode(e)
-}
-
-func (e *Epoch) DecodeAbi(buf []byte) error {
-	return decodeStruct(EpochABIType, buf, &e)
-}
-
-type UptimeData struct {
-	Validator    types.Address `abi:"validator"`
-	SignedBlocks *big.Int      `abi:"signedBlocks"`
-}
-
-var UptimeDataABIType = abi.MustNewType("tuple(address validator,uint256 signedBlocks)")
-
-func (u *UptimeData) EncodeAbi() ([]byte, error) {
-	return UptimeDataABIType.Encode(u)
-}
-
-func (u *UptimeData) DecodeAbi(buf []byte) error {
-	return decodeStruct(UptimeDataABIType, buf, &u)
-}
-
-type Uptime struct {
-	EpochID     *big.Int      `abi:"epochId"`
-	UptimeData  []*UptimeData `abi:"uptimeData"`
-	TotalBlocks *big.Int      `abi:"totalBlocks"`
-}
-
-var UptimeABIType = abi.MustNewType("tuple(uint256 epochId,tuple(address validator,uint256 signedBlocks)[] uptimeData,uint256 totalBlocks)")
-
-func (u *Uptime) EncodeAbi() ([]byte, error) {
-	return UptimeABIType.Encode(u)
-}
-
-func (u *Uptime) DecodeAbi(buf []byte) error {
-	return decodeStruct(UptimeABIType, buf, &u)
-}
-
-type CommitEpochValidatorSetFn struct {
-	ID     *big.Int `abi:"id"`
-	Epoch  *Epoch   `abi:"epoch"`
-	Uptime *Uptime  `abi:"uptime"`
-}
-
-func (c *CommitEpochValidatorSetFn) Sig() []byte {
-	return ValidatorSet.Abi.Methods["commitEpoch"].ID()
-}
-
-func (c *CommitEpochValidatorSetFn) EncodeAbi() ([]byte, error) {
-	return ValidatorSet.Abi.Methods["commitEpoch"].Encode(c)
-}
-
-func (c *CommitEpochValidatorSetFn) DecodeAbi(buf []byte) error {
-	return decodeMethod(ValidatorSet.Abi.Methods["commitEpoch"], buf, c)
-}
-
 type InitStruct struct {
 	EpochReward   *big.Int `abi:"epochReward"`
 	MinStake      *big.Int `abi:"minStake"`
@@ -109,11 +44,12 @@ func (v *ValidatorInit) DecodeAbi(buf []byte) error {
 }
 
 type InitializeValidatorSetFn struct {
-	Init        *InitStruct      `abi:"init"`
-	Validators  []*ValidatorInit `abi:"validators"`
-	NewBls      types.Address    `abi:"newBls"`
-	Governance  types.Address    `abi:"governance"`
-	LiquidToken types.Address    `abi:"liquidToken"`
+	Init          *InitStruct      `abi:"init"`
+	NewValidators []*ValidatorInit `abi:"newValidators"`
+	NewBls        types.Address    `abi:"newBls"`
+	NewRewardPool types.Address    `abi:"newRewardPool"`
+	Governance    types.Address    `abi:"governance"`
+	LiquidToken   types.Address    `abi:"liquidToken"`
 }
 
 func (i *InitializeValidatorSetFn) Sig() []byte {
@@ -126,6 +62,40 @@ func (i *InitializeValidatorSetFn) EncodeAbi() ([]byte, error) {
 
 func (i *InitializeValidatorSetFn) DecodeAbi(buf []byte) error {
 	return decodeMethod(ValidatorSet.Abi.Methods["initialize"], buf, i)
+}
+
+type Epoch struct {
+	StartBlock *big.Int   `abi:"startBlock"`
+	EndBlock   *big.Int   `abi:"endBlock"`
+	EpochRoot  types.Hash `abi:"epochRoot"`
+}
+
+var EpochABIType = abi.MustNewType("tuple(uint256 startBlock,uint256 endBlock,bytes32 epochRoot)")
+
+func (e *Epoch) EncodeAbi() ([]byte, error) {
+	return EpochABIType.Encode(e)
+}
+
+func (e *Epoch) DecodeAbi(buf []byte) error {
+	return decodeStruct(EpochABIType, buf, &e)
+}
+
+type CommitEpochValidatorSetFn struct {
+	ID        *big.Int `abi:"id"`
+	Epoch     *Epoch   `abi:"epoch"`
+	EpochSize *big.Int `abi:"epochSize"`
+}
+
+func (c *CommitEpochValidatorSetFn) Sig() []byte {
+	return ValidatorSet.Abi.Methods["commitEpoch"].ID()
+}
+
+func (c *CommitEpochValidatorSetFn) EncodeAbi() ([]byte, error) {
+	return ValidatorSet.Abi.Methods["commitEpoch"].Encode(c)
+}
+
+func (c *CommitEpochValidatorSetFn) DecodeAbi(buf []byte) error {
+	return decodeMethod(ValidatorSet.Abi.Methods["commitEpoch"], buf, c)
 }
 
 type AddToWhitelistValidatorSetFn struct {
@@ -228,8 +198,8 @@ func (s *StakedEvent) Decode(input []byte) error {
 }
 
 type DelegatedEvent struct {
-	Delegator types.Address `abi:"delegator"`
 	Validator types.Address `abi:"validator"`
+	Delegator types.Address `abi:"delegator"`
 	Amount    *big.Int      `abi:"amount"`
 }
 
@@ -279,8 +249,8 @@ func (u *UnstakedEvent) Decode(input []byte) error {
 }
 
 type UndelegatedEvent struct {
-	Delegator types.Address `abi:"delegator"`
 	Validator types.Address `abi:"validator"`
+	Delegator types.Address `abi:"delegator"`
 	Amount    *big.Int      `abi:"amount"`
 }
 
@@ -328,32 +298,6 @@ func (a *AddedToWhitelistEvent) Decode(input []byte) error {
 	return ValidatorSet.Abi.Events["AddedToWhitelist"].Inputs.DecodeStruct(input, &a)
 }
 
-type WithdrawalEvent struct {
-	Account types.Address `abi:"account"`
-	To      types.Address `abi:"to"`
-	Amount  *big.Int      `abi:"amount"`
-}
-
-func (*WithdrawalEvent) Sig() ethgo.Hash {
-	return ValidatorSet.Abi.Events["Withdrawal"].ID()
-}
-
-func (w *WithdrawalEvent) Encode() ([]byte, error) {
-	return ValidatorSet.Abi.Events["Withdrawal"].Inputs.Encode(w)
-}
-
-func (w *WithdrawalEvent) ParseLog(log *ethgo.Log) (bool, error) {
-	if !ValidatorSet.Abi.Events["Withdrawal"].Match(log) {
-		return false, nil
-	}
-
-	return true, decodeEvent(ValidatorSet.Abi.Events["Withdrawal"], log, w)
-}
-
-func (w *WithdrawalEvent) Decode(input []byte) error {
-	return ValidatorSet.Abi.Events["Withdrawal"].Inputs.DecodeStruct(input, &w)
-}
-
 type StakeChangedEvent struct {
 	Validator types.Address `abi:"validator"`
 	NewStake  *big.Int      `abi:"newStake"`
@@ -377,6 +321,58 @@ func (s *StakeChangedEvent) ParseLog(log *ethgo.Log) (bool, error) {
 
 func (s *StakeChangedEvent) Decode(input []byte) error {
 	return ValidatorSet.Abi.Events["StakeChanged"].Inputs.DecodeStruct(input, &s)
+}
+
+type InitializeRewardPoolFn struct {
+	NewValidatorSet  types.Address `abi:"newValidatorSet"`
+	NewRewardWallet  types.Address `abi:"newRewardWallet"`
+	NewMinDelegation *big.Int      `abi:"newMinDelegation"`
+	AprManager       types.Address `abi:"aprManager"`
+}
+
+func (i *InitializeRewardPoolFn) Sig() []byte {
+	return RewardPool.Abi.Methods["initialize"].ID()
+}
+
+func (i *InitializeRewardPoolFn) EncodeAbi() ([]byte, error) {
+	return RewardPool.Abi.Methods["initialize"].Encode(i)
+}
+
+func (i *InitializeRewardPoolFn) DecodeAbi(buf []byte) error {
+	return decodeMethod(RewardPool.Abi.Methods["initialize"], buf, i)
+}
+
+type Uptime struct {
+	Validator    types.Address `abi:"validator"`
+	SignedBlocks *big.Int      `abi:"signedBlocks"`
+}
+
+var UptimeABIType = abi.MustNewType("tuple(address validator,uint256 signedBlocks)")
+
+func (u *Uptime) EncodeAbi() ([]byte, error) {
+	return UptimeABIType.Encode(u)
+}
+
+func (u *Uptime) DecodeAbi(buf []byte) error {
+	return decodeStruct(UptimeABIType, buf, &u)
+}
+
+type DistributeRewardsForRewardPoolFn struct {
+	EpochID   *big.Int  `abi:"epochId"`
+	Uptime    []*Uptime `abi:"uptime"`
+	EpochSize *big.Int  `abi:"epochSize"`
+}
+
+func (d *DistributeRewardsForRewardPoolFn) Sig() []byte {
+	return RewardPool.Abi.Methods["distributeRewardsFor"].ID()
+}
+
+func (d *DistributeRewardsForRewardPoolFn) EncodeAbi() ([]byte, error) {
+	return RewardPool.Abi.Methods["distributeRewardsFor"].Encode(d)
+}
+
+func (d *DistributeRewardsForRewardPoolFn) DecodeAbi(buf []byte) error {
+	return decodeMethod(RewardPool.Abi.Methods["distributeRewardsFor"], buf, d)
 }
 
 type InitializeLiquidityTokenFn struct {

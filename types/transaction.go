@@ -10,7 +10,7 @@ import (
 
 const (
 	// StateTransactionGasLimit is arbitrary default gas limit for state transactions
-	StateTransactionGasLimit = 7000000
+	StateTransactionGasLimit = 6000000
 )
 
 // TxType is the transaction type.

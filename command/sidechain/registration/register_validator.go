@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+
 	"time"
 
 	"github.com/0xPolygon/polygon-edge/command"
@@ -26,7 +27,7 @@ var (
 	stakeManager         = contracts.ValidatorSetContract
 	stakeFn              = contractsapi.ValidatorSet.Abi.Methods["stake"]
 	newValidatorEventABI = contractsapi.ValidatorSet.Abi.Events["NewValidator"]
-	stakeEventABI        = contractsapi.ChildValidatorSet.Abi.Events["Staked"]
+	stakeEventABI        = contractsapi.ValidatorSet.Abi.Events["Staked"]
 )
 
 var params registerParams

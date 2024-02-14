@@ -575,7 +575,7 @@ func TestConsensusRuntime_calculateCommitEpochTxValue(t *testing.T) {
 			rewardsCalculator: rewardsCalculator,
 		}
 
-		txValue, err := runtime.calculateCommitEpochTxValue(block)
+		txValue, err := runtime.calculateRewardValue(block)
 		assert.Nil(t, txValue)
 		assert.EqualError(t, err, ErrCannotGetSystemState.Error())
 	})
@@ -598,7 +598,7 @@ func TestConsensusRuntime_calculateCommitEpochTxValue(t *testing.T) {
 			rewardsCalculator: rewardsCalculator,
 		}
 
-		txValue, err := runtime.calculateCommitEpochTxValue(block)
+		txValue, err := runtime.calculateRewardValue(block)
 		assert.NoError(t, err)
 		assert.Equal(t, big.NewInt(9564285714285), txValue)
 	})
@@ -646,13 +646,14 @@ func TestConsensusRuntime_calculateCommitEpochInput_SecondEpoch(t *testing.T) {
 		lastBuiltBlock: lastBuiltBlock,
 	}
 
-	commitEpochInput, err := consensusRuntime.calculateCommitEpochInput(lastBuiltBlock,
+	commitEpochInput, distributeRewardsInput, err := consensusRuntime.calculateCommitEpochInput(lastBuiltBlock,
 		consensusRuntime.epoch)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, commitEpochInput)
 	assert.Equal(t, uint64(epoch), commitEpochInput.ID.Uint64())
 	assert.Equal(t, uint64(epochStartBlock), commitEpochInput.Epoch.StartBlock.Uint64())
 	assert.Equal(t, uint64(epochEndBlock), commitEpochInput.Epoch.EndBlock.Uint64())
+	assert.Equal(t, uint64(epoch), distributeRewardsInput.EpochID.Uint64())
 
 	blockchainMock.AssertExpectations(t)
 	polybftBackendMock.AssertExpectations(t)

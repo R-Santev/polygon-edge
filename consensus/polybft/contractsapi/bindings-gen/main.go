@@ -42,12 +42,12 @@ func main() {
 		events              []string
 	}{
 		{
-			"ValidatorSet", // Hydra modify: ValidatorSet is used everywhere in the code, so we set it as name
-			gensc.ChildValidatorSet,
+			"ValidatorSet",
+			gensc.ValidatorSet,
 			false,
 			[]string{
-				"commitEpoch",
 				"initialize",
+				"commitEpoch",
 				"addToWhitelist",
 				"register",
 				"withdraw",
@@ -59,9 +59,18 @@ func main() {
 				"Unstaked",
 				"Undelegated",
 				"AddedToWhitelist",
-				"Withdrawal",
 				"StakeChanged",
 			},
+		},
+		{
+			"RewardPool",
+			gensc.RewardPool,
+			false,
+			[]string{
+				"initialize",
+				"distributeRewardsFor",
+			},
+			[]string{},
 		},
 		{
 			"LiquidityToken",

@@ -17,8 +17,8 @@ import (
 )
 
 var (
-	whitelistFn       = contractsapi.ChildValidatorSet.Abi.Methods["addToWhitelist"]
-	whitelistEventABI = contractsapi.ChildValidatorSet.Abi.Events["AddedToWhitelist"]
+	whitelistFn       = contractsapi.ValidatorSet.Abi.Methods["addToWhitelist"]
+	whitelistEventABI = contractsapi.ValidatorSet.Abi.Events["AddedToWhitelist"]
 )
 
 var params whitelistParams

@@ -175,7 +175,7 @@ func (p *blockchainWrapper) NewBlockBuilder(
 
 // GetSystemState is an implementation of blockchainBackend interface
 func (p *blockchainWrapper) GetSystemState(provider contract.Provider) SystemState {
-	return NewSystemState(contracts.ValidatorSetContract, contracts.StateReceiverContract, provider)
+	return NewSystemState(contracts.ValidatorSetContract, contracts.RewardPoolContract, contracts.StateReceiverContract, provider)
 }
 
 func (p *blockchainWrapper) SubscribeEvents() blockchain.Subscription {

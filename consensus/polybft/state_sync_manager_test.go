@@ -9,8 +9,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
-	"github.com/umbracle/ethgo"
-	"github.com/umbracle/ethgo/abi"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/contractsapi"
@@ -323,111 +321,111 @@ func TestStateSyncManager_BuildCommitment(t *testing.T) {
 // 	}
 // }
 
-func TestStateSyncerManager_AddLog_BuildCommitments(t *testing.T) {
-	t.Parallel()
+// func TestStateSyncerManager_AddLog_BuildCommitments(t *testing.T) {
+// 	t.Parallel()
 
-	vals := validator.NewTestValidators(t, 5)
+// 	vals := validator.NewTestValidators(t, 5)
 
-	t.Run("Node is a validator", func(t *testing.T) {
-		t.Parallel()
+// 	t.Run("Node is a validator", func(t *testing.T) {
+// 		t.Parallel()
 
-		s := newTestStateSyncManager(t, vals.GetValidator("0"), &mockRuntime{isActiveValidator: true})
+// 		s := newTestStateSyncManager(t, vals.GetValidator("0"), &mockRuntime{isActiveValidator: true})
 
-		// empty log which is not an state sync
-		require.NoError(t, s.AddLog(&ethgo.Log{}))
-		stateSyncs, err := s.state.StateSyncStore.list()
+// 		// empty log which is not an state sync
+// 		require.NoError(t, s.AddLog(&ethgo.Log{}))
+// 		stateSyncs, err := s.state.StateSyncStore.list()
 
-		require.NoError(t, err)
-		require.Len(t, stateSyncs, 0)
+// 		require.NoError(t, err)
+// 		require.Len(t, stateSyncs, 0)
 
-		var stateSyncedEvent contractsapi.StateSyncedEvent
+// 		var stateSyncedEvent contractsapi.StateSyncedEvent
 
-		stateSyncEventID := stateSyncedEvent.Sig()
+// 		stateSyncEventID := stateSyncedEvent.Sig()
 
-		// log with the state sync topic but incorrect content
-		require.Error(t, s.AddLog(&ethgo.Log{Topics: []ethgo.Hash{stateSyncEventID}}))
-		stateSyncs, err = s.state.StateSyncStore.list()
+// 		// log with the state sync topic but incorrect content
+// 		require.Error(t, s.AddLog(&ethgo.Log{Topics: []ethgo.Hash{stateSyncEventID}}))
+// 		stateSyncs, err = s.state.StateSyncStore.list()
 
-		require.NoError(t, err)
-		require.Len(t, stateSyncs, 0)
+// 		require.NoError(t, err)
+// 		require.Len(t, stateSyncs, 0)
 
-		// correct event log
-		data, err := abi.MustNewType("tuple(string a)").Encode([]string{"data"})
-		require.NoError(t, err)
+// 		// correct event log
+// 		data, err := abi.MustNewType("tuple(string a)").Encode([]string{"data"})
+// 		require.NoError(t, err)
 
-		goodLog := &ethgo.Log{
-			Topics: []ethgo.Hash{
-				stateSyncEventID,
-				ethgo.BytesToHash([]byte{0x0}), // state sync index 0
-				ethgo.ZeroHash,
-				ethgo.ZeroHash,
-			},
-			Data: data,
-		}
+// 		goodLog := &ethgo.Log{
+// 			Topics: []ethgo.Hash{
+// 				stateSyncEventID,
+// 				ethgo.BytesToHash([]byte{0x0}), // state sync index 0
+// 				ethgo.ZeroHash,
+// 				ethgo.ZeroHash,
+// 			},
+// 			Data: data,
+// 		}
 
-		require.NoError(t, s.AddLog(goodLog))
+// 		require.NoError(t, s.AddLog(goodLog))
 
-		stateSyncs, err = s.state.StateSyncStore.getStateSyncEventsForCommitment(0, 0)
-		require.NoError(t, err)
-		require.Len(t, stateSyncs, 1)
-		require.Len(t, s.pendingCommitments, 1)
-		require.Equal(t, uint64(0), s.pendingCommitments[0].StartID.Uint64())
-		require.Equal(t, uint64(0), s.pendingCommitments[0].EndID.Uint64())
+// 		stateSyncs, err = s.state.StateSyncStore.getStateSyncEventsForCommitment(0, 0)
+// 		require.NoError(t, err)
+// 		require.Len(t, stateSyncs, 1)
+// 		require.Len(t, s.pendingCommitments, 1)
+// 		require.Equal(t, uint64(0), s.pendingCommitments[0].StartID.Uint64())
+// 		require.Equal(t, uint64(0), s.pendingCommitments[0].EndID.Uint64())
 
-		// add one more log to have a minimum commitment
-		goodLog2 := goodLog.Copy()
-		goodLog2.Topics[1] = ethgo.BytesToHash([]byte{0x1}) // state sync index 1
-		require.NoError(t, s.AddLog(goodLog2))
+// 		// add one more log to have a minimum commitment
+// 		goodLog2 := goodLog.Copy()
+// 		goodLog2.Topics[1] = ethgo.BytesToHash([]byte{0x1}) // state sync index 1
+// 		require.NoError(t, s.AddLog(goodLog2))
 
-		require.Len(t, s.pendingCommitments, 2)
-		require.Equal(t, uint64(0), s.pendingCommitments[1].StartID.Uint64())
-		require.Equal(t, uint64(1), s.pendingCommitments[1].EndID.Uint64())
+// 		require.Len(t, s.pendingCommitments, 2)
+// 		require.Equal(t, uint64(0), s.pendingCommitments[1].StartID.Uint64())
+// 		require.Equal(t, uint64(1), s.pendingCommitments[1].EndID.Uint64())
 
-		// add two more logs to have larger commitments
-		goodLog3 := goodLog.Copy()
-		goodLog3.Topics[1] = ethgo.BytesToHash([]byte{0x2}) // state sync index 2
-		require.NoError(t, s.AddLog(goodLog3))
+// 		// add two more logs to have larger commitments
+// 		goodLog3 := goodLog.Copy()
+// 		goodLog3.Topics[1] = ethgo.BytesToHash([]byte{0x2}) // state sync index 2
+// 		require.NoError(t, s.AddLog(goodLog3))
 
-		goodLog4 := goodLog.Copy()
-		goodLog4.Topics[1] = ethgo.BytesToHash([]byte{0x3}) // state sync index 3
-		require.NoError(t, s.AddLog(goodLog4))
+// 		goodLog4 := goodLog.Copy()
+// 		goodLog4.Topics[1] = ethgo.BytesToHash([]byte{0x3}) // state sync index 3
+// 		require.NoError(t, s.AddLog(goodLog4))
 
-		require.Len(t, s.pendingCommitments, 4)
-		require.Equal(t, uint64(0), s.pendingCommitments[3].StartID.Uint64())
-		require.Equal(t, uint64(3), s.pendingCommitments[3].EndID.Uint64())
-	})
+// 		require.Len(t, s.pendingCommitments, 4)
+// 		require.Equal(t, uint64(0), s.pendingCommitments[3].StartID.Uint64())
+// 		require.Equal(t, uint64(3), s.pendingCommitments[3].EndID.Uint64())
+// 	})
 
-	t.Run("Node is not a validator", func(t *testing.T) {
-		t.Parallel()
+// 	t.Run("Node is not a validator", func(t *testing.T) {
+// 		t.Parallel()
 
-		s := newTestStateSyncManager(t, vals.GetValidator("0"), &mockRuntime{isActiveValidator: false})
+// 		s := newTestStateSyncManager(t, vals.GetValidator("0"), &mockRuntime{isActiveValidator: false})
 
-		// correct event log
-		data, err := abi.MustNewType("tuple(string a)").Encode([]string{"data"})
-		require.NoError(t, err)
+// 		// correct event log
+// 		data, err := abi.MustNewType("tuple(string a)").Encode([]string{"data"})
+// 		require.NoError(t, err)
 
-		var stateSyncedEvent contractsapi.StateSyncedEvent
+// 		var stateSyncedEvent contractsapi.StateSyncedEvent
 
-		goodLog := &ethgo.Log{
-			Topics: []ethgo.Hash{
-				stateSyncedEvent.Sig(),
-				ethgo.BytesToHash([]byte{0x0}), // state sync index 0
-				ethgo.ZeroHash,
-				ethgo.ZeroHash,
-			},
-			Data: data,
-		}
+// 		goodLog := &ethgo.Log{
+// 			Topics: []ethgo.Hash{
+// 				stateSyncedEvent.Sig(),
+// 				ethgo.BytesToHash([]byte{0x0}), // state sync index 0
+// 				ethgo.ZeroHash,
+// 				ethgo.ZeroHash,
+// 			},
+// 			Data: data,
+// 		}
 
-		require.NoError(t, s.AddLog(goodLog))
+// 		require.NoError(t, s.AddLog(goodLog))
 
-		// node should have inserted given state sync event, but it shouldn't build any commitment
-		stateSyncs, err := s.state.StateSyncStore.getStateSyncEventsForCommitment(0, 0)
-		require.NoError(t, err)
-		require.Len(t, stateSyncs, 1)
-		require.Equal(t, uint64(0), stateSyncs[0].ID.Uint64())
-		require.Len(t, s.pendingCommitments, 0)
-	})
-}
+// 		// node should have inserted given state sync event, but it shouldn't build any commitment
+// 		stateSyncs, err := s.state.StateSyncStore.getStateSyncEventsForCommitment(0, 0)
+// 		require.NoError(t, err)
+// 		require.Len(t, stateSyncs, 1)
+// 		require.Equal(t, uint64(0), stateSyncs[0].ID.Uint64())
+// 		require.Len(t, s.pendingCommitments, 0)
+// 	})
+// }
 
 // Hydra Modify: unused functionality
 // func TestStateSyncerManager_EventTracker_Sync(t *testing.T) {

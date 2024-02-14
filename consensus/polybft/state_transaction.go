@@ -17,32 +17,20 @@ func decodeStateTransaction(txData []byte) (contractsapi.StateTransactionInput, 
 	sig := txData[:abiMethodIDLength]
 
 	var (
-		// commitFn            contractsapi.CommitStateReceiverFn
-		commitEpochFn contractsapi.CommitEpochValidatorSetFn
-		// distributeRewardsFn contractsapi.DistributeRewardForRewardPoolFn
-		obj contractsapi.StateTransactionInput
+		commitEpochFn       contractsapi.CommitEpochValidatorSetFn
+		distributeRewardsFn contractsapi.DistributeRewardsForRewardPoolFn
+		obj                 contractsapi.StateTransactionInput
 	)
 
 	if bytes.Equal(sig, commitEpochFn.Sig()) {
 		// commit epoch
 		obj = &contractsapi.CommitEpochValidatorSetFn{}
+	} else if bytes.Equal(sig, distributeRewardsFn.Sig()) {
+		// distribute rewards
+		obj = &contractsapi.DistributeRewardsForRewardPoolFn{}
 	} else {
 		return nil, fmt.Errorf("unknown state transaction")
 	}
-
-	// H_MODIFY: remove commitFn and distributeRewardsFn because unused
-	// if bytes.Equal(sig, commitFn.Sig()) {
-	// 	// bridge commitment
-	// 	obj = &CommitmentMessageSigned{}
-	// } else if bytes.Equal(sig, commitEpochFn.Sig()) {
-	// 	// commit epoch
-	// 	obj = &contractsapi.CommitEpochValidatorSetFn{}
-	// } else if bytes.Equal(sig, distributeRewardsFn.Sig()) {
-	// 	// distribute rewards
-	// 	obj = &contractsapi.DistributeRewardForRewardPoolFn{}
-	// } else {
-	// 	return nil, fmt.Errorf("unknown state transaction")
-	// }
 
 	if err := obj.DecodeAbi(txData); err != nil {
 		return nil, err

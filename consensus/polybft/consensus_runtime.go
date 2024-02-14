@@ -394,12 +394,12 @@ func (c *consensusRuntime) FSM() error {
 	}
 
 	if isEndOfEpoch {
-		ff.commitEpochInput, err = c.calculateCommitEpochInput(parent, epoch)
+		ff.commitEpochInput, ff.distributeRewardsInput, err = c.calculateCommitEpochInput(parent, epoch)
 		if err != nil {
 			return fmt.Errorf("cannot calculate commit epoch info: %w", err)
 		}
 
-		ff.commitEpochTxValue, err = c.calculateCommitEpochTxValue(parent)
+		ff.maxRewardToDistribute, err = c.calculateRewardValue(parent)
 
 		ff.newValidatorsDelta, err = c.stakeManager.UpdateValidatorSet(epoch.Number, epoch.Validators.Copy())
 		if err != nil {
@@ -500,7 +500,8 @@ func (c *consensusRuntime) restartEpoch(header *types.Header) (*epochMetadata, e
 func (c *consensusRuntime) calculateCommitEpochInput(
 	currentBlock *types.Header,
 	epoch *epochMetadata,
-) (*contractsapi.CommitEpochValidatorSetFn, error) {
+) (*contractsapi.CommitEpochValidatorSetFn,
+	*contractsapi.DistributeRewardsForRewardPoolFn, error) {
 	uptimeCounter := map[types.Address]int64{}
 	blockHeader := currentBlock
 	epochID := epoch.Number
@@ -523,18 +524,18 @@ func (c *consensusRuntime) calculateCommitEpochInput(
 
 	blockExtra, err := GetIbftExtra(currentBlock.ExtraData)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// calculate uptime for current epoch
 	for blockHeader.Number > epoch.FirstBlockInEpoch {
 		if err := getSealersForBlock(blockExtra, epoch.Validators); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		blockHeader, blockExtra, err = getBlockData(blockHeader.Number-1, c.config.blockchain)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -544,16 +545,16 @@ func (c *consensusRuntime) calculateCommitEpochInput(
 		for i := 0; i < commitEpochLookbackSize; i++ {
 			validators, err := c.config.polybftBackend.GetValidators(blockHeader.Number-2, nil)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			if err := getSealersForBlock(blockExtra, validators); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			blockHeader, blockExtra, err = getBlockData(blockHeader.Number-1, c.config.blockchain)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		}
 	}
@@ -565,27 +566,17 @@ func (c *consensusRuntime) calculateCommitEpochInput(
 		addrSet = append(addrSet, addr)
 	}
 
-	uptime := &contractsapi.Uptime{
-		EpochID:     new(big.Int).SetUint64(epochID),
-		TotalBlocks: big.NewInt(totalBlocks),
-	}
+	uptime := make([]*contractsapi.Uptime, len(addrSet))
 
-	// validators uptime data must be sorted by address
 	sort.Slice(addrSet, func(i, j int) bool {
 		return bytes.Compare(addrSet[i][:], addrSet[j][:]) > 0
 	})
 
-	fmt.Println("LOG COMMIT TX DATA START:")
-	fmt.Println("EpochID:", epochID)
-	fmt.Println("Epoch start block:", epoch.FirstBlockInEpoch)
-	fmt.Println("Epoch end block:", currentBlock.Number+1)
-	fmt.Println("Epoch root:", types.Hash{})
-	fmt.Println("Total blocks:", totalBlocks)
-	fmt.Println("Validators uptime:")
-
-	for _, addr := range addrSet {
-		fmt.Println(addr, uptimeCounter[addr])
-		uptime.AddValidatorUptime(addr, uptimeCounter[addr])
+	for i, addr := range addrSet {
+		uptime[i] = &contractsapi.Uptime{
+			Validator:    addr,
+			SignedBlocks: new(big.Int).SetInt64(uptimeCounter[addr]),
+		}
 	}
 
 	commitEpoch := &contractsapi.CommitEpochValidatorSetFn{
@@ -595,13 +586,19 @@ func (c *consensusRuntime) calculateCommitEpochInput(
 			EndBlock:   new(big.Int).SetUint64(currentBlock.Number + 1),
 			EpochRoot:  types.Hash{},
 		},
-		Uptime: uptime,
+		EpochSize: big.NewInt(int64(c.config.PolyBFTConfig.EpochSize)), // TODO: epochSize must be part of the contract config and not an argument
 	}
 
-	return commitEpoch, nil
+	distributeRewards := &contractsapi.DistributeRewardsForRewardPoolFn{
+		EpochID:   new(big.Int).SetUint64(epochID),
+		Uptime:    uptime,
+		EpochSize: big.NewInt(int64(c.config.PolyBFTConfig.EpochSize)),
+	}
+
+	return commitEpoch, distributeRewards, nil
 }
 
-func (c *consensusRuntime) calculateCommitEpochTxValue(latestBlock *types.Header) (*big.Int, error) {
+func (c *consensusRuntime) calculateRewardValue(latestBlock *types.Header) (*big.Int, error) {
 	return c.rewardsCalculator.GetMaxReward(latestBlock)
 }
 

@@ -339,56 +339,22 @@ func (p *genesisParams) deployContracts(
 	}
 
 	genesisContracts := []*contractInfo{
-		// {
-		// 	// State receiver contract
-		// 	artifact: contractsapi.StateReceiver,
-		// 	address:  contracts.StateReceiverContractV1,
-		// },
-		// {
-		// 	// ChildERC20 token contract
-		// 	artifact: contractsapi.ChildERC20,
-		// 	address:  contracts.ChildERC20Contract,
-		// },
-		// {
-		// 	// ChildERC721 token contract
-		// 	artifact: contractsapi.ChildERC721,
-		// 	address:  contracts.ChildERC721Contract,
-		// },
-		// {
-		// 	// ChildERC1155 contract
-		// 	artifact: contractsapi.ChildERC1155,
-		// 	address:  contracts.ChildERC1155Contract,
-		// },
 		{
 			// BLS contract
 			artifact: contractsapi.BLS,
 			address:  contracts.BLSContractV1,
 		},
 		{
-			// Merkle contract
-			artifact: contractsapi.Merkle,
-			address:  contracts.MerkleContractV1,
-		},
-		// {
-		// 	// L2StateSender contract
-		// 	artifact: contractsapi.L2StateSender,
-		// 	address:  contracts.L2StateSenderContractV1,
-		// },
-		{
 			artifact: contractsapi.ValidatorSet,
 			address:  contracts.ValidatorSetContractV1,
 		},
-		// Hydra modification: Unused contracts
-		// {
-		// 	artifact: contractsapi.RewardPool,
-		// 	address:  contracts.RewardPoolContract,
-		// },
-		// {
-		// 	artifact: contractsapi.RewardPool,
-		// 	address:  contracts.RewardPoolContractV1,
-		// },
-		{artifact: contractsapi.LiquidityToken,
-			address: contracts.LiquidityTokenContract,
+		{
+			artifact: contractsapi.RewardPool,
+			address:  contracts.RewardPoolContractV1,
+		},
+		{
+			artifact: contractsapi.LiquidityToken,
+			address:  contracts.LiquidityTokenContract,
 		},
 	}
 
@@ -440,7 +406,7 @@ func (p *genesisParams) deployContracts(
 		}
 	}
 
-	// ChildValidatorSet must have funds pre-allocated, because of withdrawal workflow
+	// ValidatorSet must have funds pre-allocated, because of withdrawal workflow
 	allocations[contracts.ValidatorSetContract].Balance = totalStake
 
 	if rewardTokenByteCode != nil {

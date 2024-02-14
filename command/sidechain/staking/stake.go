@@ -20,8 +20,8 @@ import (
 
 var (
 	params           stakeParams
-	stakeEventABI    = contractsapi.ChildValidatorSet.Abi.Events["Staked"]
-	delegateEventABI = contractsapi.ChildValidatorSet.Abi.Events["Delegated"]
+	stakeEventABI    = contractsapi.ValidatorSet.Abi.Events["Staked"]
+	delegateEventABI = contractsapi.ValidatorSet.Abi.Events["Delegated"]
 )
 
 func GetCommand() *cobra.Command {
@@ -101,13 +101,13 @@ func runCommand(cmd *cobra.Command, _ []string) error {
 
 	var encoded []byte
 	if params.self {
-		encoded, err = contractsapi.ChildValidatorSet.Abi.Methods["stake"].Encode([]interface{}{})
+		encoded, err = contractsapi.ValidatorSet.Abi.Methods["stake"].Encode([]interface{}{})
 		if err != nil {
 			return err
 		}
 	} else {
 		delegateToAddress := types.StringToAddress(params.delegateAddress)
-		encoded, err = contractsapi.ChildValidatorSet.Abi.Methods["delegate"].Encode(
+		encoded, err = contractsapi.ValidatorSet.Abi.Methods["delegate"].Encode(
 			[]interface{}{ethgo.Address(delegateToAddress), false})
 		if err != nil {
 			return err

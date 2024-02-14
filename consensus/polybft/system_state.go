@@ -33,8 +33,6 @@ type SystemState interface {
 	GetEpoch() (uint64, error)
 	// GetNextCommittedIndex retrieves next committed bridge state sync index
 	GetNextCommittedIndex() (uint64, error)
-	// GetStakeOnValidatorSet retrieves stake of given validator on ValidatorSet contract
-	GetStakeOnValidatorSet(validatorAddr types.Address) (*big.Int, error)
 	// GetVotingPowerExponent retrieves voting power exponent from the ChildValidatorSet smart contract
 	GetVotingPowerExponent() (exponent *BigNumDecimal, err error)
 	// GetValidatorBlsKey retrieves validator BLS public key from the ChildValidatorSet smart contract
@@ -54,16 +52,22 @@ var _ SystemState = &SystemStateImpl{}
 // SystemStateImpl is implementation of SystemState interface
 type SystemStateImpl struct {
 	validatorContract       *contract.Contract
+	rewardPoolContract      *contract.Contract
 	sidechainBridgeContract *contract.Contract
 }
 
 // NewSystemState initializes new instance of systemState which abstracts smart contracts functions
-func NewSystemState(valSetAddr types.Address, stateRcvAddr types.Address, provider contract.Provider) *SystemStateImpl {
+func NewSystemState(valSetAddr types.Address, rewardPoolAddr types.Address, stateRcvAddr types.Address, provider contract.Provider) *SystemStateImpl {
 	// H_MODIFY: Use ChildValidatorSet abi
 	s := &SystemStateImpl{}
 	s.validatorContract = contract.NewContract(
 		ethgo.Address(valSetAddr),
-		contractsapi.ChildValidatorSet.Abi, contract.WithProvider(provider),
+		contractsapi.ValidatorSet.Abi, contract.WithProvider(provider),
+	)
+
+	s.rewardPoolContract = contract.NewContract(
+		ethgo.Address(rewardPoolAddr),
+		contractsapi.RewardPool.Abi, contract.WithProvider(provider),
 	)
 
 	// Hydra modification: StateReceiver contract is not used
@@ -74,34 +78,6 @@ func NewSystemState(valSetAddr types.Address, stateRcvAddr types.Address, provid
 	// )
 
 	return s
-}
-
-// Hydra modification: Get validator stake from childValidatorSet contract using the getValidatorTotalStake function
-// TODO: getValidatorTotalStake is a temporary solution and must be removed
-// (check the func in the contract for more info)
-// GetStakeOnValidatorSet retrieves stake of given validator on ValidatorSet contract
-func (s *SystemStateImpl) GetStakeOnValidatorSet(validatorAddr types.Address) (*big.Int, error) {
-	rawResult, err := s.validatorContract.Call("getValidatorTotalStake", ethgo.Latest, validatorAddr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to call getValidator function: %w", err)
-	}
-
-	stake, isOk := rawResult["stake"].(*big.Int)
-	if !isOk {
-		return nil, fmt.Errorf("failed to decode stake")
-	}
-
-	// in case stake is 0 validator is not active no mather is there a delegated balance
-	if stake.Cmp(big.NewInt(0)) == 0 {
-		return bigZero, nil
-	}
-
-	totalStake, isOk := rawResult["totalStake"].(*big.Int)
-	if !isOk {
-		return nil, fmt.Errorf("failed to decode totalStake")
-	}
-
-	return totalStake, nil
 }
 
 // GetEpoch retrieves current epoch number from the smart contract
@@ -141,14 +117,14 @@ func (s *SystemStateImpl) GetVotingPowerExponent() (exponent *BigNumDecimal, err
 
 // GetBaseReward H: fetch the base reward from the validators contract
 func (s *SystemStateImpl) GetBaseReward() (baseReward *BigNumDecimal, err error) {
-	rawOutput, err := s.validatorContract.Call("getBase", ethgo.Latest)
+	rawOutput, err := s.rewardPoolContract.Call("base", ethgo.Latest)
 	if err != nil {
 		return nil, err
 	}
 
-	numerator, ok := rawOutput["nominator"].(*big.Int)
+	numerator, ok := rawOutput["0"].(*big.Int)
 	if !ok {
-		return nil, fmt.Errorf("failed to decode baseReward numerator")
+		return nil, fmt.Errorf("failed to decode baseReward")
 	}
 
 	return &BigNumDecimal{Numerator: numerator, Denominator: big.NewInt(10000)}, nil
@@ -156,7 +132,7 @@ func (s *SystemStateImpl) GetBaseReward() (baseReward *BigNumDecimal, err error)
 
 // GetMaxRSI H: fetch the max RSI bonus from the ChildValidatorSet contract
 func (s *SystemStateImpl) GetMaxRSI() (maxRSI *big.Int, err error) {
-	rawOutput, err := s.validatorContract.Call("getMaxRSI", ethgo.Latest)
+	rawOutput, err := s.rewardPoolContract.Call("getMaxRSI", ethgo.Latest)
 	if err != nil {
 		return nil, err
 	}
@@ -171,12 +147,12 @@ func (s *SystemStateImpl) GetMaxRSI() (maxRSI *big.Int, err error) {
 
 // GetStakedBalance H: fetch the total staked balance from the validators contract
 func (s *SystemStateImpl) GetStakedBalance() (*big.Int, error) {
-	rawOutput, err := s.validatorContract.Call("totalActiveStake", ethgo.Latest)
+	rawOutput, err := s.validatorContract.Call("totalSupply", ethgo.Latest)
 	if err != nil {
 		return nil, err
 	}
 
-	stake, ok := rawOutput["activeStake"].(*big.Int)
+	stake, ok := rawOutput["0"].(*big.Int)
 	if !ok {
 		return nil, fmt.Errorf("failed to decode total stake")
 	}
@@ -186,14 +162,14 @@ func (s *SystemStateImpl) GetStakedBalance() (*big.Int, error) {
 
 // GetMacroFactor H: fetch the APR macro factor from the validators contract
 func (s *SystemStateImpl) GetMacroFactor() (*big.Int, error) {
-	rawOutput, err := s.validatorContract.Call("getMacro", ethgo.Latest)
+	rawOutput, err := s.rewardPoolContract.Call("macroFactor", ethgo.Latest)
 	if err != nil {
 		return nil, err
 	}
 
-	macro, ok := rawOutput["nominator"].(*big.Int)
+	macro, ok := rawOutput["0"].(*big.Int)
 	if !ok {
-		return nil, fmt.Errorf("failed to decode macro factor value")
+		return nil, fmt.Errorf("failed to decode macro factor")
 	}
 
 	return macro, nil

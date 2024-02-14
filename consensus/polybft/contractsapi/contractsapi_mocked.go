@@ -77,6 +77,23 @@ func (e *ExecuteStateReceiverFn) DecodeAbi(buf []byte) error {
 	return decodeMethod(StateReceiver.Abi.Methods["execute"], buf, e)
 }
 
+type BatchExecuteStateReceiverFn struct {
+	Proofs [][]types.Hash `abi:"proofs"`
+	Objs   []*StateSync   `abi:"objs"`
+}
+
+func (b *BatchExecuteStateReceiverFn) Sig() []byte {
+	return StateReceiver.Abi.Methods["batchExecute"].ID()
+}
+
+func (b *BatchExecuteStateReceiverFn) EncodeAbi() ([]byte, error) {
+	return StateReceiver.Abi.Methods["batchExecute"].Encode(b)
+}
+
+func (b *BatchExecuteStateReceiverFn) DecodeAbi(buf []byte) error {
+	return decodeMethod(StateReceiver.Abi.Methods["batchExecute"], buf, b)
+}
+
 type StateSyncResultEvent struct {
 	Counter *big.Int `abi:"counter"`
 	Status  bool     `abi:"status"`
@@ -522,7 +539,7 @@ type InitializeRootERC20PredicateFn struct {
 	NewExitHelper          types.Address `abi:"newExitHelper"`
 	NewChildERC20Predicate types.Address `abi:"newChildERC20Predicate"`
 	NewChildTokenTemplate  types.Address `abi:"newChildTokenTemplate"`
-	NativeTokenRootAddress types.Address `abi:"nativeTokenRootAddress"`
+	NewNativeTokenRoot     types.Address `abi:"newNativeTokenRoot"`
 }
 
 func (i *InitializeRootERC20PredicateFn) Sig() []byte {
@@ -1205,13 +1222,14 @@ func (o *OwnerOfChildERC721Fn) DecodeAbi(buf []byte) error {
 }
 
 type InitializeCustomSupernetManagerFn struct {
-	NewStakeManager      types.Address `abi:"newStakeManager"`
-	NewBls               types.Address `abi:"newBls"`
-	NewStateSender       types.Address `abi:"newStateSender"`
-	NewMatic             types.Address `abi:"newMatic"`
-	NewChildValidatorSet types.Address `abi:"newChildValidatorSet"`
-	NewExitHelper        types.Address `abi:"newExitHelper"`
-	NewDomain            string        `abi:"newDomain"`
+	NewStakeManager       types.Address `abi:"newStakeManager"`
+	NewBls                types.Address `abi:"newBls"`
+	NewStateSender        types.Address `abi:"newStateSender"`
+	NewMatic              types.Address `abi:"newMatic"`
+	NewChildValidatorSet  types.Address `abi:"newChildValidatorSet"`
+	NewExitHelper         types.Address `abi:"newExitHelper"`
+	NewRootERC20Predicate types.Address `abi:"newRootERC20Predicate"`
+	NewDomain             string        `abi:"newDomain"`
 }
 
 func (i *InitializeCustomSupernetManagerFn) Sig() []byte {
@@ -1273,6 +1291,22 @@ func (g *GetValidatorCustomSupernetManagerFn) EncodeAbi() ([]byte, error) {
 
 func (g *GetValidatorCustomSupernetManagerFn) DecodeAbi(buf []byte) error {
 	return decodeMethod(CustomSupernetManager.Abi.Methods["getValidator"], buf, g)
+}
+
+type AddGenesisBalanceCustomSupernetManagerFn struct {
+	Amount *big.Int `abi:"amount"`
+}
+
+func (a *AddGenesisBalanceCustomSupernetManagerFn) Sig() []byte {
+	return CustomSupernetManager.Abi.Methods["addGenesisBalance"].ID()
+}
+
+func (a *AddGenesisBalanceCustomSupernetManagerFn) EncodeAbi() ([]byte, error) {
+	return CustomSupernetManager.Abi.Methods["addGenesisBalance"].Encode(a)
+}
+
+func (a *AddGenesisBalanceCustomSupernetManagerFn) DecodeAbi(buf []byte) error {
+	return decodeMethod(CustomSupernetManager.Abi.Methods["addGenesisBalance"], buf, a)
 }
 
 type ValidatorRegisteredEvent struct {
@@ -1544,40 +1578,29 @@ func (w *WithdrawalRegisteredEvent) Decode(input []byte) error {
 	return ValidatorSet.Abi.Events["WithdrawalRegistered"].Inputs.DecodeStruct(input, &w)
 }
 
-type InitializeRewardPoolFn struct {
-	NewRewardToken  types.Address `abi:"newRewardToken"`
-	NewRewardWallet types.Address `abi:"newRewardWallet"`
-	NewValidatorSet types.Address `abi:"newValidatorSet"`
-	NewBaseReward   *big.Int      `abi:"newBaseReward"`
+type WithdrawalEvent struct {
+	Account types.Address `abi:"account"`
+	Amount  *big.Int      `abi:"amount"`
 }
 
-func (i *InitializeRewardPoolFn) Sig() []byte {
-	return RewardPool.Abi.Methods["initialize"].ID()
+func (*WithdrawalEvent) Sig() ethgo.Hash {
+	return ValidatorSet.Abi.Events["Withdrawal"].ID()
 }
 
-func (i *InitializeRewardPoolFn) EncodeAbi() ([]byte, error) {
-	return RewardPool.Abi.Methods["initialize"].Encode(i)
+func (w *WithdrawalEvent) Encode() ([]byte, error) {
+	return ValidatorSet.Abi.Events["Withdrawal"].Inputs.Encode(w)
 }
 
-func (i *InitializeRewardPoolFn) DecodeAbi(buf []byte) error {
-	return decodeMethod(RewardPool.Abi.Methods["initialize"], buf, i)
+func (w *WithdrawalEvent) ParseLog(log *ethgo.Log) (bool, error) {
+	if !ValidatorSet.Abi.Events["Withdrawal"].Match(log) {
+		return false, nil
+	}
+
+	return true, decodeEvent(ValidatorSet.Abi.Events["Withdrawal"], log, w)
 }
 
-type DistributeRewardForRewardPoolFn struct {
-	EpochID *big.Int  `abi:"epochId"`
-	Uptime  []*Uptime `abi:"uptime"`
-}
-
-func (d *DistributeRewardForRewardPoolFn) Sig() []byte {
-	return RewardPool.Abi.Methods["distributeRewardFor"].ID()
-}
-
-func (d *DistributeRewardForRewardPoolFn) EncodeAbi() ([]byte, error) {
-	return RewardPool.Abi.Methods["distributeRewardFor"].Encode(d)
-}
-
-func (d *DistributeRewardForRewardPoolFn) DecodeAbi(buf []byte) error {
-	return decodeMethod(RewardPool.Abi.Methods["distributeRewardFor"], buf, d)
+func (w *WithdrawalEvent) Decode(input []byte) error {
+	return ValidatorSet.Abi.Events["Withdrawal"].Inputs.DecodeStruct(input, &w)
 }
 
 type InitializeEIP1559BurnFn struct {

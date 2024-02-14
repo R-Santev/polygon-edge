@@ -77,15 +77,15 @@ type fsm struct {
 	// It is populated only for epoch-ending blocks.
 	commitEpochInput *contractsapi.CommitEpochValidatorSetFn
 
-	// commitEpochTxValue holds info about the max amount that may be needed for rewards distribution
-	// It is send to the Validators contract on commitEpoch transaction
+	// maxRewardToDistribute holds info about the max amount of HYDRA that may be needed for rewards distribution
+	// It is send to the RewardPool contract on distributeRewardsFor transaction
 	// It is populated only for epoch-ending blocks.
-	commitEpochTxValue *big.Int
+	maxRewardToDistribute *big.Int
 
 	// distributeRewardsInput holds info about validators work in a single epoch
 	// mainly, how many blocks they signed during given epoch
 	// It is populated only for epoch-ending blocks.
-	distributeRewardsInput *contractsapi.DistributeRewardForRewardPoolFn
+	distributeRewardsInput *contractsapi.DistributeRewardsForRewardPoolFn
 
 	// isEndOfEpoch indicates if epoch reached its end
 	isEndOfEpoch bool
@@ -131,11 +131,6 @@ func (f *fsm) BuildProposal(currentRound uint64) ([]byte, error) {
 	}
 
 	if f.isEndOfEpoch {
-		// H_MODIFY Increase ChildValidatorSet balance here to be able to pay rewards
-		// if err := f.increase(); err != nil {
-		// 	return nil, err
-		// }
-
 		tx, err := f.createCommitEpochTx()
 		if err != nil {
 			return nil, err
@@ -145,15 +140,14 @@ func (f *fsm) BuildProposal(currentRound uint64) ([]byte, error) {
 			return nil, fmt.Errorf("failed to apply commit epoch transaction: %w", err)
 		}
 
-		// H_MoDIFY: There is no separate distribute rewards tx
-		// tx, err = f.createDistributeRewardsTx()
-		// if err != nil {
-		// 	return nil, err
-		// }
+		tx, err = f.createDistributeRewardsTx()
+		if err != nil {
+			return nil, err
+		}
 
-		// if err := f.blockBuilder.WriteTx(tx); err != nil {
-		// 	return nil, fmt.Errorf("failed to apply distribute rewards transaction: %w", err)
-		// }
+		if err := f.blockBuilder.WriteTx(tx); err != nil {
+			return nil, fmt.Errorf("failed to apply distribute rewards transaction: %w", err)
+		}
 	}
 
 	if f.config.IsBridgeEnabled() {
@@ -266,7 +260,7 @@ func (f *fsm) createCommitEpochTx() (*types.Transaction, error) {
 		return nil, err
 	}
 
-	return createStateTransactionWithData(f.Height(), contracts.ValidatorSetContract, input, f.commitEpochTxValue), nil
+	return createStateTransactionWithData(f.Height(), contracts.ValidatorSetContract, input, nil), nil
 }
 
 // createDistributeRewardsTx create a StateTransaction, which invokes RewardPool smart contract
@@ -277,7 +271,7 @@ func (f *fsm) createDistributeRewardsTx() (*types.Transaction, error) {
 		return nil, err
 	}
 
-	return createStateTransactionWithData(f.Height(), contracts.RewardPoolContract, input, nil), nil
+	return createStateTransactionWithData(f.Height(), contracts.RewardPoolContract, input, f.maxRewardToDistribute), nil
 }
 
 // ValidateCommit is used to validate that a given commit is valid
@@ -427,7 +421,8 @@ func (f *fsm) ValidateSender(msg *proto.Message) error {
 
 func (f *fsm) VerifyStateTransactions(transactions []*types.Transaction) error {
 	var (
-		commitEpochTxExists bool
+		commitEpochTxExists       bool
+		distributeRewardsTxExists bool
 	)
 
 	for _, tx := range transactions {
@@ -468,19 +463,19 @@ func (f *fsm) VerifyStateTransactions(transactions []*types.Transaction) error {
 			if err := f.verifyCommitEpochTx(tx); err != nil {
 				return fmt.Errorf("error while verifying commit epoch transaction. error: %w", err)
 			}
-		// case *contractsapi.DistributeRewardForRewardPoolFn:
-		// 	if distributeRewardsTxExists {
-		// 		// if we already validated distribute rewards tx,
-		// 		// that means someone added more than one distribute rewards tx to block,
-		// 		// which is invalid
-		// 		return errDistributeRewardsTxSingleExpected
-		// 	}
+		case *contractsapi.DistributeRewardsForRewardPoolFn:
+			if distributeRewardsTxExists {
+				// if we already validated distribute rewards tx,
+				// that means someone added more than one distribute rewards tx to block,
+				// which is invalid
+				return errDistributeRewardsTxSingleExpected
+			}
 
-		// 	distributeRewardsTxExists = true
+			distributeRewardsTxExists = true
 
-		// 	if err := f.verifyDistributeRewardsTx(tx); err != nil {
-		// 		return fmt.Errorf("error while verifying distribute rewards transaction. error: %w", err)
-		// 	}
+			if err := f.verifyDistributeRewardsTx(tx); err != nil {
+				return fmt.Errorf("error while verifying distribute rewards transaction. error: %w", err)
+			}
 		default:
 			return fmt.Errorf("invalid state transaction data type: %v", stateTxData)
 		}
@@ -493,12 +488,11 @@ func (f *fsm) VerifyStateTransactions(transactions []*types.Transaction) error {
 			return errCommitEpochTxDoesNotExist
 		}
 
-		// H_MODIFY: We don't have distribute tx (distribution happens on commit epoch tx)
-		// if !distributeRewardsTxExists {
-		// 	// this is a check if distribute rewards transaction is not in the list of transactions at all
-		// 	// but it should be
-		// 	return errDistributeRewardsTxDoesNotExist
-		// }
+		if !distributeRewardsTxExists {
+			// this is a check if distribute rewards transaction is not in the list of transactions at all
+			// but it should be
+			return errDistributeRewardsTxDoesNotExist
+		}
 	}
 
 	return nil

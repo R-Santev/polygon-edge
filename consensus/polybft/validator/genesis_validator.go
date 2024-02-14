@@ -70,6 +70,7 @@ func (v *GenesisValidator) UnmarshalBLSSignature() (*bls.Signature, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return bls.UnmarshalSignature(decoded)
 }
 

@@ -29,51 +29,27 @@ func main() {
 		Name string
 	}{
 		{
-			"child/L2StateSender.sol",
-			"L2StateSender",
-		},
-		{
-			"child/StateReceiver.sol",
-			"StateReceiver",
-		},
-		{
-			"child/System.sol",
+			"common/System/System.sol",
 			"System",
 		},
 		{
-			"common/BLS.sol",
+			"BLS/BLS.sol",
 			"BLS",
 		},
 		{
-			"common/BN256G2.sol",
-			"BN256G2",
+			"ValidatorSet/ValidatorSet.sol",
+			"ValidatorSet",
 		},
 		{
-			"common/Merkle.sol",
-			"Merkle",
+			"RewardPool/RewardPool.sol",
+			"RewardPool",
 		},
 		{
-			"root/CheckpointManager.sol",
-			"CheckpointManager",
-		},
-		{
-			"root/ExitHelper.sol",
-			"ExitHelper",
-		},
-		{
-			"root/StateSender.sol",
-			"StateSender",
-		},
-		{
-			"child/ChildValidatorSet.sol",
-			"ChildValidatorSet",
-		},
-		{
-			"child/LiquidityToken.sol",
+			"LiquidityToken/LiquidityToken.sol",
 			"LiquidityToken",
 		},
 		{
-			"libs/GenesisProxy.sol",
+			"GenesisProxy/GenesisProxy.sol",
 			"GenesisProxy",
 		},
 		{

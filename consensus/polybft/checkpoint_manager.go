@@ -17,12 +17,13 @@ import (
 	"github.com/0xPolygon/polygon-edge/types"
 	hclog "github.com/hashicorp/go-hclog"
 	"github.com/umbracle/ethgo"
+	"github.com/umbracle/ethgo/abi"
 )
 
 var (
 	// currentCheckpointBlockNumMethod is an ABI method object representation for
 	// currentCheckpointBlockNumber getter function on CheckpointManager contract
-	currentCheckpointBlockNumMethod, _ = contractsapi.CheckpointManager.Abi.Methods["currentCheckpointBlockNumber"]
+	currentCheckpointBlockNumMethod, _ = abi.Method{}, "" // unused in Hydra
 	// frequency at which checkpoints are sent to the rootchain (in blocks count)
 	defaultCheckpointsOffset = uint64(900)
 )

@@ -100,7 +100,7 @@ func TestSystemState_GetEpoch(t *testing.T) {
 		transition: transition,
 	}
 
-	systemState := NewSystemState(result.Address, contracts.StateReceiverContract, provider)
+	systemState := NewSystemState(result.Address, contracts.RewardPoolContract, contracts.StateReceiverContract, provider)
 
 	expectedEpoch := uint64(50)
 	input, err := setEpochMethod.Encode([1]interface{}{expectedEpoch})
@@ -137,6 +137,7 @@ func newTestTransition(t *testing.T, alloc map[types.Address]*chain.GenesisAccou
 		BurnContract: map[uint64]types.Address{
 			0: types.ZeroAddress,
 		},
+		ChainID: 0,
 	}, st, hclog.NewNullLogger())
 
 	rootHash, err := ex.WriteGenesis(alloc, types.Hash{})
