@@ -6,11 +6,13 @@ import (
 	"strings"
 
 	"github.com/0xPolygon/polygon-edge/command"
+	bls "github.com/0xPolygon/polygon-edge/consensus/polybft/signer"
 	"github.com/0xPolygon/polygon-edge/consensus/polybft/wallet"
 	"github.com/0xPolygon/polygon-edge/secrets"
 	"github.com/0xPolygon/polygon-edge/secrets/helper"
 	"github.com/0xPolygon/polygon-edge/types"
 	"github.com/spf13/cobra"
+	ethWallet "github.com/umbracle/ethgo/wallet"
 )
 
 const (
@@ -21,6 +23,9 @@ const (
 	numFlag                = "num"
 	outputFlag             = "output"
 	chainIDFlag            = "chain-id"
+	networkKeyFlag         = "network-key"
+	ecdsaKeyFlag           = "ecdsa-key"
+	blsKeyFlag             = "bls-key"
 
 	// maxInitNum is the maximum value for "num" flag
 	maxInitNum = 30
@@ -42,6 +47,10 @@ type initParams struct {
 	output bool
 
 	chainID int64
+
+	networkKey string
+	ecdsaKey   string
+	blsKey     string
 }
 
 func (ip *initParams) validateFlags() error {
@@ -78,12 +87,26 @@ func (ip *initParams) setFlags(cmd *cobra.Command) {
 		"the flag indicating how many secrets should be created, only for the local FS",
 	)
 
-	// Don't accept data-dir and config flags because they are related to different secrets managers.
-	// data-dir is about the local FS as secrets storage, config is about remote secrets manager.
-	cmd.MarkFlagsMutuallyExclusive(AccountDirFlag, AccountConfigFlag)
+	cmd.Flags().StringVar(
+		&ip.networkKey,
+		networkKeyFlag,
+		"",
+		"the flag providing already created network key to be used",
+	)
 
-	// num flag should be used with data-dir flag only so it should not be used with config flag.
-	cmd.MarkFlagsMutuallyExclusive(numFlag, AccountConfigFlag)
+	cmd.Flags().StringVar(
+		&ip.ecdsaKey,
+		ecdsaKeyFlag,
+		"",
+		"the flag providing already created ecdsa key to be used",
+	)
+
+	cmd.Flags().StringVar(
+		&ip.blsKey,
+		blsKeyFlag,
+		"",
+		"the flag providing already created bls key to be used",
+	)
 
 	cmd.Flags().BoolVar(
 		&ip.generatesAccount,
@@ -126,6 +149,26 @@ func (ip *initParams) setFlags(cmd *cobra.Command) {
 		command.DefaultChainID,
 		"the ID of the chain",
 	)
+
+	// Don't accept data-dir and config flags because they are related to different secrets managers.
+	// data-dir is about the local FS as secrets storage, config is about remote secrets manager.
+	cmd.MarkFlagsMutuallyExclusive(AccountDirFlag, AccountConfigFlag)
+
+	// num flag should be used with data-dir flag only so it should not be used with config flag.
+	cmd.MarkFlagsMutuallyExclusive(numFlag, AccountConfigFlag)
+
+	// Encryptedlocal secrets manager with preset keys can be setup for a single bunch of secrets only, so num flag is not allowed.
+	cmd.MarkFlagsMutuallyExclusive(numFlag, networkKeyFlag)
+	cmd.MarkFlagsMutuallyExclusive(numFlag, blsKeyFlag)
+	cmd.MarkFlagsMutuallyExclusive(numFlag, ecdsaKeyFlag)
+
+	// network-key, ecdsa-key and bls-key flags should be used with data-dir flag only because they are related to local FS.
+	cmd.MarkFlagsMutuallyExclusive(AccountConfigFlag, networkKeyFlag)
+	cmd.MarkFlagsMutuallyExclusive(AccountConfigFlag, blsKeyFlag)
+	cmd.MarkFlagsMutuallyExclusive(AccountConfigFlag, ecdsaKeyFlag)
+
+	// Currently we handle ecdsaKey and blsKey generation from flag together only.
+	cmd.MarkFlagsRequiredTogether(ecdsaKeyFlag, blsKeyFlag)
 }
 
 func (ip *initParams) Execute() (Results, error) {
@@ -171,11 +214,15 @@ func (ip *initParams) initKeys(secretsManager secrets.SecretsManager) ([]string,
 
 	if ip.generatesNetwork {
 		if !secretsManager.HasSecret(secrets.NetworkKey) {
-			if _, err := helper.InitNetworkingPrivateKey(secretsManager); err != nil {
+			if _, err := helper.InitNetworkingPrivateKey(secretsManager, []byte(ip.networkKey)); err != nil {
 				return generated, fmt.Errorf("error initializing network-key: %w", err)
 			}
 
 			generated = append(generated, secrets.NetworkKey)
+		} else {
+			if ip.networkKey != "" {
+				return generated, fmt.Errorf("network-key already exists")
+			}
 		}
 	}
 
@@ -186,9 +233,31 @@ func (ip *initParams) initKeys(secretsManager secrets.SecretsManager) ([]string,
 		)
 
 		if !secretsManager.HasSecret(secrets.ValidatorKey) && !secretsManager.HasSecret(secrets.ValidatorBLSKey) {
-			a, err = wallet.GenerateAccount()
-			if err != nil {
-				return generated, fmt.Errorf("error generating account: %w", err)
+			if ip.ecdsaKey != "" && ip.blsKey != "" {
+				blsKey, err := bls.UnmarshalPrivateKey([]byte(ip.blsKey))
+				if err != nil {
+					return generated, fmt.Errorf("failed to retrieve bls key: %w", err)
+				}
+
+				ecdsaRaw, err := hex.DecodeString(ip.ecdsaKey)
+				if err != nil {
+					return generated, fmt.Errorf("failed to retrieve ecdsa key: %w", err)
+				}
+
+				key, err := ethWallet.NewWalletFromPrivKey(ecdsaRaw)
+				if err != nil {
+					return generated, fmt.Errorf("failed to retrieve ecdsa key: %w", err)
+				}
+
+				a = &wallet.Account{
+					Ecdsa: key,
+					Bls:   blsKey,
+				}
+			} else {
+				a, err = wallet.GenerateAccount()
+				if err != nil {
+					return generated, fmt.Errorf("error generating account: %w", err)
+				}
 			}
 
 			if err = a.Save(secretsManager); err != nil {
@@ -197,6 +266,10 @@ func (ip *initParams) initKeys(secretsManager secrets.SecretsManager) ([]string,
 
 			generated = append(generated, secrets.ValidatorKey, secrets.ValidatorBLSKey)
 		} else {
+			if ip.ecdsaKey != "" || ip.blsKey != "" {
+				return generated, fmt.Errorf("ecdsa-key or bls-key already exists")
+			}
+
 			a, err = wallet.NewAccountFromSecret(secretsManager)
 			if err != nil {
 				return generated, fmt.Errorf("error loading account: %w", err)

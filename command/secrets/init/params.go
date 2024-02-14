@@ -133,7 +133,7 @@ func (ip *initParams) initValidatorKey() error {
 
 func (ip *initParams) initNetworkingKey() error {
 	if ip.generatesNetwork {
-		if _, err := helper.InitNetworkingPrivateKey(ip.secretsManager); err != nil {
+		if _, err := helper.InitNetworkingPrivateKey(ip.secretsManager, nil); err != nil {
 			return err
 		}
 	}

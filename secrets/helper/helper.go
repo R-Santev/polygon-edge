@@ -15,11 +15,28 @@ import (
 	"github.com/0xPolygon/polygon-edge/network"
 	"github.com/0xPolygon/polygon-edge/secrets"
 	"github.com/0xPolygon/polygon-edge/secrets/awsssm"
+	"github.com/0xPolygon/polygon-edge/secrets/encryptedlocal"
 	"github.com/0xPolygon/polygon-edge/secrets/gcpssm"
 	"github.com/0xPolygon/polygon-edge/secrets/hashicorpvault"
 	"github.com/0xPolygon/polygon-edge/secrets/local"
 	"github.com/0xPolygon/polygon-edge/types"
 )
+
+// SetupEncryptedLocalSecretsManager is a helper method for encrypted local secrets manager setup
+func SetupEncryptedLocalSecretsManager(dataDir string) (secrets.SecretsManager, error) {
+	return encryptedlocal.SecretsManagerFactory(
+		nil, // Local secrets manager doesn't require a config
+		&secrets.SecretsManagerParams{
+			Logger: hclog.New(&hclog.LoggerOptions{
+				Name:  "polybft-secrets",
+				Level: hclog.Info,
+			}),
+			Extra: map[string]interface{}{
+				secrets.Path: dataDir,
+			},
+		},
+	)
+}
 
 // SetupLocalSecretsManager is a helper method for boilerplate local secrets manager setup
 func SetupLocalSecretsManager(dataDir string) (secrets.SecretsManager, error) {
@@ -120,15 +137,30 @@ func InitBLSValidatorKey(secretsManager secrets.SecretsManager) ([]byte, error) 
 	return pubkeyBytes, nil
 }
 
-func InitNetworkingPrivateKey(secretsManager secrets.SecretsManager) (libp2pCrypto.PrivKey, error) {
+func InitNetworkingPrivateKey(secretsManager secrets.SecretsManager, predefinedSecret []byte) (libp2pCrypto.PrivKey, error) {
 	if secretsManager.HasSecret(secrets.NetworkKey) {
 		return nil, fmt.Errorf(`secrets "%s" has been already initialized`, secrets.NetworkKey)
 	}
 
-	// Generate the libp2p private key
-	libp2pKey, libp2pKeyEncoded, keyErr := network.GenerateAndEncodeLibp2pKey()
-	if keyErr != nil {
-		return nil, keyErr
+	var (
+		libp2pKey        libp2pCrypto.PrivKey
+		libp2pKeyEncoded []byte
+		err              error
+	)
+
+	if predefinedSecret != nil && len(predefinedSecret) > 0 {
+		libp2pKey, err = network.ParseLibp2pKey(predefinedSecret)
+		if err != nil {
+			return nil, fmt.Errorf("invalid private network key provided: %w", err)
+		}
+
+		libp2pKeyEncoded = predefinedSecret
+	} else {
+		// Generate the libp2p private key
+		libp2pKey, libp2pKeyEncoded, err = network.GenerateAndEncodeLibp2pKey()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Write the networking private key to the secrets manager storage
@@ -139,7 +171,7 @@ func InitNetworkingPrivateKey(secretsManager secrets.SecretsManager) (libp2pCryp
 		return nil, setErr
 	}
 
-	return libp2pKey, keyErr
+	return libp2pKey, err
 }
 
 // LoadValidatorAddress loads ECDSA key by SecretsManager and returns validator address

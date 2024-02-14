@@ -69,6 +69,9 @@ const (
 
 	// GCPSSM pertains to the Google Cloud Computing secret store manager
 	GCPSSM SecretsManagerType = "gcp-ssm"
+
+	// Encrypted Local pertains to the local FS but the data is encrypted with password
+	EncryptedLocal SecretsManagerType = "encrypted-local"
 )
 
 // SecretsManager defines the base public interface that all
