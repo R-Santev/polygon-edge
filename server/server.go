@@ -511,7 +511,7 @@ func (s *Server) setupSecretsManager() error {
 		Logger: s.logger,
 	}
 
-	if secretsManagerType == secrets.Local {
+	if secretsManagerType == secrets.Local || secretsManagerType == secrets.EncryptedLocal {
 		// Only the base directory is required for
 		// the local secrets manager
 		secretsManagerParams.Extra = map[string]interface{}{

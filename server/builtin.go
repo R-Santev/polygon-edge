@@ -10,6 +10,7 @@ import (
 	"github.com/0xPolygon/polygon-edge/forkmanager"
 	"github.com/0xPolygon/polygon-edge/secrets"
 	"github.com/0xPolygon/polygon-edge/secrets/awsssm"
+	"github.com/0xPolygon/polygon-edge/secrets/encryptedlocal"
 	"github.com/0xPolygon/polygon-edge/secrets/gcpssm"
 	"github.com/0xPolygon/polygon-edge/secrets/hashicorpvault"
 	"github.com/0xPolygon/polygon-edge/secrets/local"
@@ -45,6 +46,7 @@ var secretsManagerBackends = map[secrets.SecretsManagerType]secrets.SecretsManag
 	secrets.HashicorpVault: hashicorpvault.SecretsManagerFactory,
 	secrets.AWSSSM:         awsssm.SecretsManagerFactory,
 	secrets.GCPSSM:         gcpssm.SecretsManagerFactory,
+	secrets.EncryptedLocal: encryptedlocal.SecretsManagerFactory,
 }
 
 var genesisCreationFactory = map[ConsensusType]GenesisFactoryHook{
