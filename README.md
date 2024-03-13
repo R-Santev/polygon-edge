@@ -124,10 +124,10 @@ Once your node is operational and fully synced, you're ready to become a validat
 
 - Whitelisting: Your public key needs to be whitelisted by the Hydra team to participate as a validator. Use the command below to retrieve your public key, then forward it to the Hydra team for whitelisting:
 
-Check your public secrets data with the following command:
+Check your public secrets data with the same command you've used to generate your secrets. It will output the public data about the already generated secrets:
 
 ```
-hydra secrets output --data-dir node-secrets
+./hydra secrets init --chain-id 8844 --data-dir node-secrets
 ```
 
 You need the following value:
