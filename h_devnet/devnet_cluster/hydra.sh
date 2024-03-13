@@ -1,4 +1,4 @@
-#!/bin/shHYDRA_NODE_BIN
+#!/bin/sh
 
 set -e
 
