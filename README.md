@@ -2,6 +2,25 @@
 
 ## Becoming a validator
 
+### System Requirements
+
+This is the minimum hardware configuration required to set up a Edge-powered chain:
+
+| Component | Minimum Requirement            | Recommended                              |
+| --------- | ------------------------------ | ---------------------------------------- |
+| Processor | 4-core CPU                     | 8-core CPU                               |
+| Memory    | 8 GB RAM                       | 16 GB RAM                                |
+| Storage   | 200 GB SSD                     | 1 TB SSD                                 |
+| Network   | High-speed internet connection | Dedicated server with gigabit connection |
+
+> Note that these minimum requirements are based on the x2iezn.2xlarge instance type used in the [<ins>performance tests</ins>](benchmarks.md), which demonstrated satisfactory performance. However, for better performance and higher transaction throughput, consider using more powerful hardware configurations, such as those equivalent to x2iezn.4xlarge or x2iezn.8xlarge instance types.
+
+##### Hardware environment tips
+
+    While we do not favor any operating system, more secure and stable Linux server distributions (like CentOS) should be preferred over desktop operating systems (like Mac OS and Windows).
+
+    The minimum storage requirements will change over time as the network grows. It is recommended to use more than the minimum requirements to run a robust full node.
+
 ### Download Node code distribution
 
 To begin your journey as a validator, you'll first need to obtain the software for your node. We currently support only Linux environments, and you can choose between two options:
